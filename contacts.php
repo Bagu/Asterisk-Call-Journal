@@ -465,8 +465,11 @@ $contacts = $stmtC->fetchAll();
             $numeros = [];
             if ($contact['numeros_raw']) {
                 foreach (explode(';;', $contact['numeros_raw']) as $raw) {
-                    [$nid, $nnum, $ntype] = explode('|', $raw, 3);
-                    $numeros[] = ['id' => $nid, 'numero' => $nnum, 'type' => $ntype];
+                    // Défaut '' pour éviter Undefined array key si GROUP_CONCAT tronque
+                    $parts = array_pad(explode('|', $raw, 3), 3, '');
+                    [$nid, $nnum, $ntype] = $parts;
+                    if ($nid === '' || $nnum === '') continue;
+                    $numeros[] = ['id' => $nid, 'numero' => $nnum, 'type' => $ntype ?: 'inconnu'];
                 }
             }
         ?>
