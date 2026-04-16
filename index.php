@@ -207,8 +207,10 @@ if ($isAjax && $mode === 'rows') {
 }
 
 $rendered  = renderTableRows($appels, $speciaux, $nomsParNumero);
-// Date du premier appel affiché (pour check_new)
-$firstDate = !empty($appels) ? $appels[0]['date_appel'] : '';
+// Date la plus récente du journal respectant les filtres actifs (pour check_new).
+$stmtMax = $db->prepare("SELECT MAX(date_appel) FROM appels a $whereSQL");
+$stmtMax->execute($params);
+$firstDate = (string)$stmtMax->fetchColumn() ?: '';
 // Locale JS pour le formatage des nombres
 $jsLocale  = detectLang() === 'fr' ? 'fr-FR' : 'en-US';
 ?>
