@@ -72,31 +72,45 @@ cp _htaccess .htaccess
 
 #### 3. Créer le fichier de configuration `.env`
 
-Ce fichier doit être placé **hors du répertoire web** (ex : `/etc/secrets/journal.env`).
+Ce fichier doit être placé **hors du répertoire web** (ex : `/etc/secrets/journal.env`
+sous Linux, `C:\secrets\journal.env` sous Windows).
 
 ```ini
-DEBIAN_IP=192.168.1.10        # Adresse IP du serveur Asterisk
-SSH_USER=asterisk              # Utilisateur SSH
-SSH_PASS=mot_de_passe_fort     # Mot de passe SSH
+DEBIAN_IP=192.168.1.10               # Adresse IP du serveur Asterisk
+SSH_USER=asterisk                     # Utilisateur SSH
+SSH_PASS=mot_de_passe_fort            # Mot de passe SSH
 REMOTE_CSV=/var/log/asterisk/cdr.csv  # Chemin du fichier CDR sur le serveur distant
-PYTHON_EXE=/usr/bin/python3    # Chemin de l'interpréteur Python (optionnel)
+PYTHON_EXE=/usr/bin/python3           # Chemin de l'interpréteur Python (optionnel)
 ```
 
 > ⚠️ Ce fichier contient des credentials. Ne jamais le versionner.
 
 #### 4. Générer le fichier `known_hosts`
 
+Le fichier `known_hosts` enregistre l'empreinte SSH du serveur Asterisk.
+Il est obligatoire : le script refuse toute connexion vers un hôte non reconnu (`RejectPolicy`).
+
+**Linux / macOS**
+
 ```bash
 ssh-keyscan -H <IP_ASTERISK> >> /var/www/journal/known_hosts
 ```
 
-> Le fichier `known_hosts` doit être présent à la racine du projet.
-> Il sert à vérifier l'empreinte du serveur SSH (politique `RejectPolicy`).
+**Windows** — OpenSSH est inclus depuis Windows 10 (1809) et Windows Server 2019.
+Dans PowerShell ou CMD :
+
+```powershell
+ssh-keyscan -H <IP_ASTERISK> >> C:\chemin\vers\journal\known_hosts
+```
+
+Si la commande `ssh-keyscan` est introuvable, activer le client OpenSSH :
+**Paramètres → Applications → Fonctionnalités facultatives → Ajouter → Client OpenSSH**
+
+> Le fichier `known_hosts` doit être placé à la racine du projet.
 
 #### 5. Mettre à jour le chemin `.env` dans `sync.php` et `sync_calls.py`
 
-Remplacer le chemin `E:/secrets/journal.env` par le chemin réel du fichier `.env`
-dans les deux fichiers suivants :
+Remplacer le chemin par défaut par le chemin réel du fichier `.env` dans :
 
 - `sync.php` → variable `$envPath`
 - `sync_calls.py` → constante `_ENV_PATH`
@@ -107,10 +121,10 @@ dans les deux fichiers suivants :
 php manage_users.php add <nom> <mot_de_passe> admin
 ```
 
-#### 7. Permissions des fichiers
+#### 7. Permissions des fichiers (Linux uniquement)
 
 ```bash
-# Le répertoire doit être accessible en écriture par Apache (pour les bases SQLite)
+# Le répertoire doit être accessible en écriture par Apache (bases SQLite)
 chown -R www-data:www-data /var/www/journal
 chmod 750 /var/www/journal
 chmod 640 /var/www/journal/*.php
@@ -120,14 +134,21 @@ chmod 640 /var/www/journal/*.php
 
 Dans `config.php`, la constante `SYNC_MODE` contrôle le comportement de l'auto-refresh :
 
-| Valeur  | Comportement                                                     |
-|---------|------------------------------------------------------------------|
-| `'web'` | Le script Python est lancé via le bouton **Synchroniser** (défaut) |
-| `'cron'`| Le script Python est lancé par une tâche cron externe ; l'interface vérifie uniquement si de nouveaux appels sont disponibles (intervalle 30 s) |
+| Valeur   | Comportement                                                                          |
+|----------|---------------------------------------------------------------------------------------|
+| `'web'`  | Le script Python est lancé via le bouton **Synchroniser** (défaut)                   |
+| `'cron'` | Le script Python est lancé par une tâche cron externe ; l'interface vérifie uniquement si de nouveaux appels sont disponibles (intervalle 30 s) |
 
-**Exemple de crontab (mode `'cron'`) :**
+**Exemple de crontab (mode `'cron'`, Linux) :**
+
 ```cron
 */5 * * * * www-data /usr/bin/python3 /var/www/journal/sync_calls.py >> /var/log/journal-appels.log 2>&1
+```
+
+**Exemple de tâche planifiée (mode `'cron'`, Windows) :**
+
+```powershell
+schtasks /create /tn "JournalAppels" /tr "python C:\chemin\vers\journal\sync_calls.py" /sc minute /mo 5
 ```
 
 ### Gestion des utilisateurs
@@ -180,7 +201,7 @@ and phone number search.
 - Python 3.12+ with packages: `paramiko`, `python-dotenv`
 - SFTP access to the remote Asterisk server
 
-### Quick Start
+### Installation
 
 #### 1. Clone the repository
 
@@ -196,27 +217,45 @@ cp _htaccess .htaccess
 
 #### 3. Create the `.env` configuration file
 
-Place this file **outside the web root** (e.g. `/etc/secrets/journal.env`).
+Place this file **outside the web root** (e.g. `/etc/secrets/journal.env` on Linux,
+`C:\secrets\journal.env` on Windows).
 
 ```ini
-DEBIAN_IP=192.168.1.10
-SSH_USER=asterisk
-SSH_PASS=strong_password
-REMOTE_CSV=/var/log/asterisk/cdr.csv
-PYTHON_EXE=/usr/bin/python3    # optional
+DEBIAN_IP=192.168.1.10               # Asterisk server IP address
+SSH_USER=asterisk                     # SSH username
+SSH_PASS=strong_password              # SSH password
+REMOTE_CSV=/var/log/asterisk/cdr.csv  # Path to the CDR file on the remote server
+PYTHON_EXE=/usr/bin/python3           # Python interpreter path (optional)
 ```
 
 > ⚠️ This file contains credentials. Never commit it.
 
 #### 4. Generate the `known_hosts` file
 
+The `known_hosts` file stores the Asterisk server's SSH fingerprint.
+It is required: the script refuses any connection to an unrecognised host (`RejectPolicy`).
+
+**Linux / macOS**
+
 ```bash
 ssh-keyscan -H <ASTERISK_IP> >> /var/www/journal/known_hosts
 ```
 
+**Windows** — OpenSSH is bundled since Windows 10 (1809) and Windows Server 2019.
+In PowerShell or CMD:
+
+```powershell
+ssh-keyscan -H <ASTERISK_IP> >> C:\path\to\journal\known_hosts
+```
+
+If `ssh-keyscan` is not found, enable the OpenSSH client:
+**Settings → Apps → Optional features → Add a feature → OpenSSH Client**
+
+> Place `known_hosts` at the project root.
+
 #### 5. Update the `.env` path in `sync.php` and `sync_calls.py`
 
-Replace `E:/secrets/journal.env` with the actual path in:
+Replace the default path with the actual path to your `.env` file in:
 
 - `sync.php` → `$envPath` variable
 - `sync_calls.py` → `_ENV_PATH` constant
@@ -227,7 +266,7 @@ Replace `E:/secrets/journal.env` with the actual path in:
 php manage_users.php add <name> <password> admin
 ```
 
-#### 7. File permissions
+#### 7. File permissions (Linux only)
 
 ```bash
 chown -R www-data:www-data /var/www/journal
@@ -239,14 +278,21 @@ chmod 640 /var/www/journal/*.php
 
 Set `SYNC_MODE` in `config.php`:
 
-| Value   | Behaviour                                                          |
-|---------|--------------------------------------------------------------------|
-| `'web'` | Python script is triggered by the **Sync** button (default)       |
-| `'cron'`| Python script runs via an external cron job; the UI only polls for new calls every 30 s |
+| Value    | Behaviour                                                                              |
+|----------|----------------------------------------------------------------------------------------|
+| `'web'`  | Python script is triggered by the **Sync** button (default)                           |
+| `'cron'` | Python script runs via an external scheduler; the UI only polls for new calls every 30 s |
 
-**Example crontab (`'cron'` mode):**
+**Example crontab (`'cron'` mode, Linux):**
+
 ```cron
 */5 * * * * www-data /usr/bin/python3 /var/www/journal/sync_calls.py >> /var/log/journal-appels.log 2>&1
+```
+
+**Example scheduled task (`'cron'` mode, Windows):**
+
+```powershell
+schtasks /create /tn "JournalAppels" /tr "python C:\path\to\journal\sync_calls.py" /sc minute /mo 5
 ```
 
 ### User Management
