@@ -20,6 +20,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'vider
         $db->beginTransaction();
         $db->exec("DELETE FROM appels");
         $db->exec("DELETE FROM sqlite_sequence WHERE name='appels'");
+        // Invalide le cache de sync_meta pour forcer la prochaine synchro à
+        // télécharger et ré-insérer le CSV distant (sinon fetch_remote_calls
+        // retourne -1 "CSV inchangé" et la liste reste vide).
+        $db->exec("DELETE FROM sync_meta WHERE key IN ('csv_mtime','csv_size')");
         $db->commit();
         header('Location: index.php');
         exit;
