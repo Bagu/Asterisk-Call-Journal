@@ -64,7 +64,7 @@ interface responsive avec scroll infini, filtres et recherche par numéro.
 git clone https://github.com/Bagu/journal-appels.git /var/www/journal
 ```
 
-#### 2. Renommer le fichier `.htaccess`
+#### 2. Renommer le fichier `.htaccess` si nécessaire
 
 ```bash
 cp _htaccess .htaccess
@@ -209,7 +209,7 @@ and phone number search.
 git clone https://github.com/Bagu/asterisk-call-journal.git /var/www/journal
 ```
 
-#### 2. Rename `.htaccess`
+#### 2. Rename `.htaccess` if needed
 
 ```bash
 cp _htaccess .htaccess
