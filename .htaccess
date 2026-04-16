@@ -1,0 +1,28 @@
+# Interdit l'accès direct aux fichiers sensibles (base de données, scripts, configuration)
+<FilesMatch "\.(db|sqlite|sqlite3|py|env|csv|ini|config)$">
+    Require all denied
+</FilesMatch>
+
+# Interdit l'accès au fichier des clés SSH connues
+<Files "known_hosts">
+    Require all denied
+</Files>
+
+# Interdit l'accès web aux tests unitaires (accessibles uniquement via CLI : php tests.php) Adapter selon besoins
+<Files "tests.php">
+	<RequireAny>
+        Require ip 172.16.1.0/24
+        Require ip 192.168.0.0/16
+        Require ip 127.0.0.1
+        Require ip ::1
+    </RequireAny>
+</Files>
+
+# Interdit l'accès direct aux fichiers include PHP (pas de sortie, mais expose leur existence)
+<FilesMatch "^(manage_users|contacts_functions|index_functions|lang|auth|config)\.php$">
+    Require all denied
+</FilesMatch>
+
+# Bloque l'accès web au dossier locales/ (fichiers de traduction PHP).
+RewriteEngine On
+RewriteRule ^locales(/|$) - [F,L]
