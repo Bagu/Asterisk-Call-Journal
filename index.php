@@ -721,9 +721,11 @@ async function checkForNewAndBanner() {
         const resp = await fetch('index.php?' + params, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
         const data = await resp.json();
         if (data.count > 0) {
-            if (currentPage <= 1 && scrollZone.scrollTop < 80) {
-                // Auto-refresh silencieux : mis à jour avant le saut pour éviter
-                // qu'un timer concurrent re-détecte les mêmes nouveaux appels
+            // Refresh silencieux uniquement si : page 1, en haut du scroll,
+            // ET une seule page chargée dans le DOM (sinon on tronquerait la fenêtre)
+            if (currentPage <= 1 && scrollZone.scrollTop < 80 && pageWindows.length <= 1) {
+                // Mis à jour avant le saut pour éviter qu'un timer concurrent
+                // re-détecte les mêmes nouveaux appels
                 document.getElementById('new-calls-banner').style.display = 'none';
                 newestDate = new Date().toISOString().replace('T', ' ').slice(0, 19);
                 await jumpToPage(1);
