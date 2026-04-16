@@ -99,7 +99,9 @@ if ($action === 'import_csv' && isset($_FILES['csvfile'])) {
         $errors[] = t('contacts.err_size');
     } else {
         $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
-        if (!in_array($mime, ['text/plain', 'text/csv', 'application/csv', 'text/x-csv', 'text/comma-separated-values'], true)) {
+        $ext  = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!in_array($mime, ['text/plain', 'text/csv', 'application/csv', 'text/x-csv', 'text/comma-separated-values'], true)
+            || !in_array($ext, ['csv', 'txt'], true)) {
             $errors[] = t('contacts.err_mime');
         }
     }
