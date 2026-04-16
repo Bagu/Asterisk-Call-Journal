@@ -66,6 +66,18 @@ if (is_readable($envPath)) {
     }
 }
 
+// ── Verrou pour éviter les synchronisations concurrentes ──────────────────────
+// Deux utilisateurs cliquant simultanément pourraient corrompre la DB ou le CSV distant.
+$lockFile = __DIR__ . '/sync.lock';
+$lockFp   = fopen($lockFile, 'c');
+if ($lockFp === false || !flock($lockFp, LOCK_EX | LOCK_NB)) {
+    if ($lockFp) fclose($lockFp);
+    ob_clean();
+    header('Content-Type: application/json');
+    echo json_encode(['ok' => false, 'msg' => t('sync.err_busy')]);
+    exit;
+}
+
 // ── Exécution du script Python ────────────────────────────────────────────────
 $prefix = PHP_OS_FAMILY === 'Windows' ? 'set PYTHONIOENCODING=utf-8 && ' : '';
 $cmd    = $prefix . escapeshellarg($pythonExe) . ' ' . escapeshellarg($pyScript) . ' 2>&1';
@@ -73,6 +85,10 @@ $cmd    = $prefix . escapeshellarg($pythonExe) . ' ' . escapeshellarg($pyScript)
 $output = [];
 $code   = 0;
 exec($cmd, $output, $code);
+
+// Libération du verrou dès que exec() est terminé
+flock($lockFp, LOCK_UN);
+fclose($lockFp);
 
 ob_clean();
 header('Content-Type: application/json');
