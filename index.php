@@ -545,6 +545,16 @@ function trimTop() {
     }
 }
 
+/** Décharge les pages les plus récentes du DOM (symétrique de trimTop) lors
+ *  d'un scroll vers le haut. hasMore repasse à true pour permettre le rechargement. */
+function trimBottom() {
+    while (pageWindows.length > MAX_PAGES_IN_DOM) {
+        const newest = pageWindows.pop();
+        newest.tbodyEl.remove();
+        hasMore = true;
+    }
+}
+
 let statusTimer = null;
 /** Affiche un toast de statut coloré en bas de page. */
 function showStatus(text, bg, color, autoHide = true) {
@@ -568,7 +578,11 @@ async function loadPage(page) {
     loader.style.display = 'block';
 
     const params = getFilterParams();
-    params.set('page', page); params.set('mode', 'rows'); params.set('lastDay', lastDay);
+    // Le lastDay n'est valide que si on charge la page qui suit immédiatement
+    // la dernière page de la fenêtre (enchaînement continu des séparateurs de jour).
+    const lastInWindow = pageWindows.length > 0 ? pageWindows[pageWindows.length - 1].page : 0;
+    const ld = (page === lastInWindow + 1) ? lastDay : '';
+    params.set('page', page); params.set('mode', 'rows'); params.set('lastDay', ld);
 
     try {
         const resp = await fetch('index.php?' + params, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
@@ -585,8 +599,6 @@ async function loadPage(page) {
         hasMore     = data.hasMore;
         totalPages  = data.totalPages;
         lastDay     = data.lastDay;
-        // currentPage = data.page;
-        // updatePageInfo();
 
         // offsetHeight force un reflow et retourne la hauteur réelle du tbody inséré
         pageWindows.push({ page, tbodyEl: newTbody, height: newTbody.offsetHeight });
@@ -596,6 +608,59 @@ async function loadPage(page) {
 
     } catch (e) {
         console.error('loadPage:', e);
+        showStatus('❌ ' + I18N.syncErr, '#ffebee', '#c62828');
+    } finally {
+        isLoading = false;
+        loader.style.display = 'none';
+    }
+}
+
+/** Charge une page précédente (scroll vers le haut) et la prépend au tableau.
+ *  Ajuste topSpacer et scrollTop pour préserver la position visuelle de l'utilisateur. */
+async function loadPageAbove(page) {
+    if (isLoading || page < 1) return;
+    if (pageWindows.some(pw => pw.page === page)) return; // déjà chargée
+    isLoading = true;
+    loader.style.display = 'block';
+
+    const params = getFilterParams();
+    // lastDay vide : le serveur recalcule les séparateurs depuis le début de la page
+    params.set('page', page); params.set('mode', 'rows'); params.set('lastDay', '');
+
+    try {
+        const resp = await fetch('index.php?' + params, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+
+        const newTbody = document.createElement('tbody');
+        newTbody.id = 'page-body-' + page;
+        newTbody.dataset.page = page;
+        newTbody.innerHTML = data.html;
+
+        // Insère le tbody juste après le spacer, avant le premier tbody de page existant
+        const firstPageTbody = pageWindows[0] ? pageWindows[0].tbodyEl : null;
+        if (firstPageTbody) {
+            tableEl.insertBefore(newTbody, firstPageTbody);
+        } else {
+            tableEl.appendChild(newTbody);
+        }
+
+        const h = newTbody.offsetHeight;
+        pageWindows.unshift({ page, tbodyEl: newTbody, height: h });
+
+        // Compense le spacer (la zone virtuelle du haut diminue de h, mais le contenu
+        // réel ajouté mesure h : la position de scroll reste donc inchangée visuellement).
+        const newSpacer = Math.max(0, topSpacerHeight - h);
+        // Ajuste scrollTop pour éviter un saut si le spacer ne peut pas absorber toute la hauteur
+        const delta = topSpacerHeight - newSpacer; // partie effectivement retirée du spacer
+        scrollZone.scrollTop += (h - delta);
+        setTopSpacer(newSpacer);
+
+        // Décharge les pages excédentaires du bas
+        trimBottom();
+
+    } catch (e) {
+        console.error('loadPageAbove:', e);
         showStatus('❌ ' + I18N.syncErr, '#ffebee', '#c62828');
     } finally {
         isLoading = false;
@@ -660,6 +725,16 @@ new IntersectionObserver(entries => {
         loadPage(nextPage);
     }
 }, { root: scrollZone, rootMargin: '200px', threshold: 0 }).observe(sentinel);
+
+/** Déclenche loadPageAbove() quand le spacer du haut (pages déchargées) redevient visible.
+ *  Observe le tbody du spacer : si l'utilisateur remonte et que des pages ont été déchargées,
+ *  on recharge la page précédant la première page actuellement en fenêtre. */
+new IntersectionObserver(entries => {
+    if (!entries[0].isIntersecting || isLoading || isJumping) return;
+    if (topSpacerHeight <= 0 || pageWindows.length === 0) return;
+    const prevPage = pageWindows[0].page - 1;
+    if (prevPage >= 1) loadPageAbove(prevPage);
+}, { root: scrollZone, rootMargin: '200px', threshold: 0 }).observe(topSpacerTbody);
 
 // ── Contrôles UI ──────────────────────────────────────────────────────────────
 document.getElementById('btn-jump-page').addEventListener('click', () => jumpToPage(jumpInput.value));
