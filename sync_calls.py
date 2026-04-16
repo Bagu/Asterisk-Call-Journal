@@ -199,9 +199,14 @@ def fetch_remote_calls(conn: sqlite3.Connection) -> int:
         count_after = conn.execute("SELECT COUNT(*) FROM appels").fetchone()[0]
         inserted = max(0, count_after - count_before)
 
-        # Purge locale des appels > 1 an
-        conn.execute("DELETE FROM appels WHERE date_appel < datetime('now', '-365 days')")
-        conn.commit()
+        # Purge locale des appels > 1 an : exécutée au plus une fois par jour pour
+        # éviter une requête DELETE inutile à chaque synchronisation.
+        last_purge = _get_meta(conn, 'last_purge')
+        today      = datetime.now().strftime('%Y-%m-%d')
+        if last_purge != today:
+            conn.execute("DELETE FROM appels WHERE date_appel < datetime('now', '-365 days')")
+            conn.commit()
+            _set_meta(conn, 'last_purge', today)
 
         # Sauvegarde de l'état du CSV distant pour la prochaine vérification
         _set_meta(conn, 'csv_mtime', csv_mtime)
