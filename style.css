@@ -1,0 +1,87 @@
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f0f2f5;
+    margin: 0;
+}
+
+/* ── Topbar ── */
+.topbar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: #1a1a2e; color: #eee;
+    padding: 12px 16px;
+    position: sticky; top: 0; z-index: 10; flex-shrink: 0; /* Fixe en haut sur toutes les pages, mobile inclus */
+}
+.topbar h2 { margin: 0; flex: 1; font-size: 1.2rem; white-space: nowrap; }
+.topbar a {
+    color: #fff; background: #374785; padding: 7px 14px;
+    border-radius: 5px; text-decoration: none; font-size: .85rem; white-space: nowrap;
+}
+.topbar a:hover { background: #4a5fa8; }
+
+/* ── Cards ── */
+.card { background: white; border-radius: 8px; padding: 18px; box-shadow: 0 1px 4px #0001; margin-bottom: 16px; }
+.card h3 { margin: 0 0 14px; font-size: 1rem; }
+
+/* ── Alertes ── */
+.alert { padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: .88rem; }
+.alert-ok   { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+.alert-err  { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+.alert-warn { background: #fff8e1; color: #e65100; border: 1px solid #ffcc80; font-size: .82rem; margin-top: 4px; }
+
+/* ── Formulaires ── */
+label.lbl { display: block; font-size: .83rem; color: #555; margin-bottom: 3px; }
+/* Champs de saisie et listes déroulantes : style unifié (password inclus) */
+input[type=text], input[type=password], input[type=file],
+input[type=number], input[type=date], select {
+    padding: 7px 10px; border: 1px solid #ccc; border-radius: 5px;
+    font-size: .9rem; max-width: 100%;
+}
+.form-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+
+/* ── Boutons ── */
+.btn { padding: 7px 14px; border: none; border-radius: 5px; cursor: pointer; font-size: .85rem; color: white; font-weight: 600; }
+.btn-blue   { background: #374785; } .btn-blue:hover   { background: #4a5fa8; }
+.btn-green  { background: #27ae60; } .btn-green:hover  { background: #1e8449; }
+.btn-red    { background: #e74c3c; font-size: .78rem; padding: 4px 9px; } .btn-red:hover  { background: #f85d4d; }
+.btn-orange { background: #e67e22; font-size: .78rem; padding: 4px 9px; } .btn-orange:hover  { background: #f78f33; }
+.btn-gray   { background: #bbb; } .btn-gray:hover  { background: #ccc; }
+
+/* ── Tableaux ── */
+table { width: 100%; border-collapse: collapse; font-size: .87rem; }
+thead tr { background: #1a1a2e; color: white; }
+th, td { padding: 9px 12px; border-bottom: 1px solid #eee; vertical-align: middle; }
+tbody tr:hover { background: #f7f9ff; }
+
+/* ── Badges catégorie (partagés : index + numéros spéciaux) ── */
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: .73rem; font-weight: 600; }
+.badge-cat-system    { background: #d5e8fb; color: #1565c0; }
+.badge-cat-local     { background: #d4efdf; color: #1a5e30; }
+.badge-cat-blacklist { background: #fde8e8; color: #7b1f1f; }
+.badge-cat-autre     { background: #f5ecff; color: #4a148c; }
+
+/* ── Modales ── */
+.modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.5); z-index: 100;
+    align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+    background: white; border-radius: 10px; padding: 24px;
+    width: 420px; max-width: 95vw; max-height: 90vh; overflow-y: auto;
+}
+.modal h4 { margin: 0 0 14px; }
+.modal-actions { display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end; }
+.modal label.lbl { margin-top: 10px; }
+
+/* ── Sections dépliables ── */
+details summary { cursor: pointer; font-weight: 600; font-size: .9rem; padding: 4px 0; user-select: none; }
+details[open] summary { margin-bottom: 12px; }
+details .hint {
+    font-size: .8rem; color: #888; background: #f9f9f9;
+    border: 1px dashed #ccc; border-radius: 5px; padding: 8px 12px;
+    margin-bottom: 12px; line-height: 1.6;
+}
