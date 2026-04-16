@@ -170,8 +170,14 @@ if ($isAjax && $mode === 'check_new') {
         $s->execute(array_merge($params, [$after]));
         $count = (int)$s->fetchColumn();
     }
+    // Renvoie aussi totalLignes/totalPages pour que le JS rafraîchisse l'indicateur
+    // de page sans devoir recharger toute la vue quand l'utilisateur reste en page 2+
     header('Content-Type: application/json');
-    echo json_encode(['count' => $count]);
+    echo json_encode([
+        'count'       => $count,
+        'totalLignes' => $totalLignes,
+        'totalPages'  => $totalPages,
+    ]);
     exit;
 }
 
@@ -798,6 +804,10 @@ async function checkForNewAndBanner() {
         const resp = await fetch('index.php?' + params, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
         const data = await resp.json();
         if (data.count > 0) {
+            // Rafraîchit le compteur global avant le saut ou l'affichage de la bannière
+            if (typeof data.totalLignes === 'number') totalLignes = data.totalLignes;
+            if (typeof data.totalPages  === 'number') totalPages  = data.totalPages;
+
             // Refresh silencieux uniquement si : page 1, en haut du scroll,
             // ET une seule page chargée dans le DOM (sinon on tronquerait la fenêtre)
             if (currentPage <= 1 && scrollZone.scrollTop < 80 && pageWindows.length <= 1) {
@@ -808,6 +818,7 @@ async function checkForNewAndBanner() {
                 await jumpToPage(1);
             } else {
                 showNewCallsBanner(data.count);
+                updatePageInfo();
             }
         }
     } catch (e) { /* silencieux */ }
