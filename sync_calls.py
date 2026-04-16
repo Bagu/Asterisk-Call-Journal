@@ -109,8 +109,12 @@ def fetch_remote_calls(conn: sqlite3.Connection) -> int:
             stat = sftp.stat(REMOTE_CSV)
             csv_mtime = str(stat.st_mtime)
             csv_size  = str(stat.st_size)
-            if (csv_mtime == _get_meta(conn, 'csv_mtime') and
-                    csv_size == _get_meta(conn, 'csv_size')):
+            # Si la table appels est vide, on force le téléchargement même si
+            # le CSV distant n'a pas changé (cas d'un vidage manuel du journal).
+            local_empty = conn.execute("SELECT COUNT(*) FROM appels").fetchone()[0] == 0
+            if (not local_empty
+                    and csv_mtime == _get_meta(conn, 'csv_mtime')
+                    and csv_size == _get_meta(conn, 'csv_size')):
                 return -1  # Aucun changement, synchro inutile
             # Lecture en binaire puis décodage : évite l'ambiguïté text/bytes de paramiko en Python 3
             with sftp.open(REMOTE_CSV, 'rb') as f:
