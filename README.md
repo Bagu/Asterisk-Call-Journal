@@ -64,13 +64,7 @@ interface responsive avec scroll infini, filtres et recherche par numéro.
 git clone https://github.com/Bagu/journal-appels.git /var/www/journal
 ```
 
-#### 2. Renommer le fichier `.htaccess` si nécessaire
-
-```bash
-cp _htaccess .htaccess
-```
-
-#### 3. Créer le fichier de configuration `.env`
+#### 2. Créer le fichier de configuration `.env`
 
 Ce fichier doit être placé **hors du répertoire web** (ex : `/etc/secrets/journal.env`
 sous Linux, `C:\secrets\journal.env` sous Windows).
@@ -85,7 +79,7 @@ PYTHON_EXE=/usr/bin/python3           # Chemin de l'interpréteur Python (option
 
 > ⚠️ Ce fichier contient des credentials. Ne jamais le versionner.
 
-#### 4. Générer le fichier `known_hosts`
+#### 3. Générer le fichier `known_hosts`
 
 Le fichier `known_hosts` enregistre l'empreinte SSH du serveur Asterisk.
 Il est obligatoire : le script refuse toute connexion vers un hôte non reconnu (`RejectPolicy`).
@@ -108,20 +102,20 @@ Si la commande `ssh-keyscan` est introuvable, activer le client OpenSSH :
 
 > Le fichier `known_hosts` doit être placé à la racine du projet.
 
-#### 5. Mettre à jour le chemin `.env` dans `sync.php` et `sync_calls.py`
+#### 4. Mettre à jour le chemin `.env` dans `sync.php` et `sync_calls.py`
 
 Remplacer le chemin par défaut par le chemin réel du fichier `.env` dans :
 
 - `sync.php` → variable `$envPath`
 - `sync_calls.py` → constante `_ENV_PATH`
 
-#### 6. Créer le premier compte administrateur
+#### 5. Créer le premier compte administrateur
 
 ```bash
 php manage_users.php add <nom> <mot_de_passe> admin
 ```
 
-#### 7. Permissions des fichiers (Linux uniquement)
+#### 6. Permissions des fichiers (Linux uniquement)
 
 ```bash
 # Le répertoire doit être accessible en écriture par Apache (bases SQLite)
@@ -209,13 +203,7 @@ and phone number search.
 git clone https://github.com/Bagu/asterisk-call-journal.git /var/www/journal
 ```
 
-#### 2. Rename `.htaccess` if needed
-
-```bash
-cp _htaccess .htaccess
-```
-
-#### 3. Create the `.env` configuration file
+#### 2. Create the `.env` configuration file
 
 Place this file **outside the web root** (e.g. `/etc/secrets/journal.env` on Linux,
 `C:\secrets\journal.env` on Windows).
@@ -230,7 +218,7 @@ PYTHON_EXE=/usr/bin/python3           # Python interpreter path (optional)
 
 > ⚠️ This file contains credentials. Never commit it.
 
-#### 4. Generate the `known_hosts` file
+#### 3. Generate the `known_hosts` file
 
 The `known_hosts` file stores the Asterisk server's SSH fingerprint.
 It is required: the script refuses any connection to an unrecognised host (`RejectPolicy`).
@@ -253,20 +241,20 @@ If `ssh-keyscan` is not found, enable the OpenSSH client:
 
 > Place `known_hosts` at the project root.
 
-#### 5. Update the `.env` path in `sync.php` and `sync_calls.py`
+#### 4. Update the `.env` path in `sync.php` and `sync_calls.py`
 
 Replace the default path with the actual path to your `.env` file in:
 
 - `sync.php` → `$envPath` variable
 - `sync_calls.py` → `_ENV_PATH` constant
 
-#### 6. Create the first admin account
+#### 5. Create the first admin account
 
 ```bash
 php manage_users.php add <name> <password> admin
 ```
 
-#### 7. File permissions (Linux only)
+#### 6. File permissions (Linux only)
 
 ```bash
 chown -R www-data:www-data /var/www/journal
