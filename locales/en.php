@@ -215,5 +215,5 @@ return [
     'sync.err_script'           => 'Synchronisation script not found on the server.',
     'sync.done'                 => 'Synchronisation complete.',
     'sync.err_code'             => 'Synchronisation error (code {code}).',
-	'sync.err_busy'             => 'Sync already in progress',
+    'sync.err_busy'             => 'Sync already in progress',
 ];
