@@ -383,13 +383,13 @@ $jsLocale  = detectLang() === 'fr' ? 'fr-FR' : 'en-US';
 
 <div class="topbar">
     <h2>📞 <?= htmlspecialchars(t('index.title')) ?></h2>
-    <button id="btn-toggle-topbar" onclick="toggleTopbar()" title="Menu">☰</button>
-    <button id="btn-toggle-filtres" onclick="toggleFiltres()" title="<?= htmlspecialchars(t('index.filter.btn')) ?>">🔍</button>
+    <button id="btn-toggle-topbar" title="Menu">☰</button>
+    <button id="btn-toggle-filtres" title="<?= htmlspecialchars(t('index.filter.btn')) ?>">🔍</button>
     <div class="topbar-actions" id="topbar-actions">
-        <button class="btn-sync" onclick="syncAndRefresh()">🔄 <?= htmlspecialchars(t('index.sync')) ?></button>
+        <button id="btn-sync-main" class="btn-sync">🔄 <?= htmlspecialchars(t('index.sync')) ?></button>
         <?php if (isAdmin()): ?>
-        <form method="post" style="display:inline"
-              onsubmit="return confirm(<?= json_encode(t('index.vider_confirm'), JSON_HEX_TAG|JSON_HEX_QUOT|JSON_HEX_AMP) ?>)">
+        <form method="post" class="form-confirm" style="display:inline"
+              data-confirm="<?= htmlspecialchars(t('index.vider_confirm')) ?>">
             <?= csrfField() ?>
             <input type="hidden" name="action" value="vider_journal">
             <button type="submit" class="btn-sync btn-sync-danger">🗑 <?= htmlspecialchars(t('index.vider')) ?></button>
@@ -463,11 +463,11 @@ $jsLocale  = detectLang() === 'fr' ? 'fr-FR' : 'en-US';
 </div>
 
 <span id="sync-status"></span>
-<button id="new-calls-banner" onclick="dismissBanner()">
+<button id="new-calls-banner">
     <span id="new-calls-text"></span> <?= htmlspecialchars(t('index.new_calls_show')) ?>
 </button>
 
-<script>
+<script nonce="<?= htmlspecialchars(cspNonce()) ?>">
 const SYNC_MODE = <?= json_encode(SYNC_MODE) ?>;
 
 // ── Traductions JS (injectées depuis PHP au chargement de la page) ─────────────
@@ -902,6 +902,19 @@ document.addEventListener('visibilitychange', () => {
 });
 
 startAutoRefresh();
+
+// ── Listeners remplaçant les onclick/onsubmit inline (CSP stricte) ────────────
+document.getElementById('btn-toggle-topbar').addEventListener('click', toggleTopbar);
+document.getElementById('btn-toggle-filtres').addEventListener('click', toggleFiltres);
+document.getElementById('btn-sync-main').addEventListener('click', syncAndRefresh);
+document.getElementById('new-calls-banner').addEventListener('click', dismissBanner);
+
+// Formulaires à confirmation (attribut data-confirm sur la <form>)
+document.querySelectorAll('form.form-confirm').forEach(f => {
+    f.addEventListener('submit', e => {
+        if (!confirm(f.dataset.confirm)) e.preventDefault();
+    });
+});
 </script>
 </body>
 </html>
