@@ -77,7 +77,7 @@ REMOTE_CSV=/var/log/asterisk/cdr.csv  # Chemin du fichier CDR sur le serveur dis
 PYTHON_EXE=/usr/bin/python3           # Chemin de l'interpréteur Python (optionnel)
 ```
 
-> ⚠️ Ce fichier contient des credentials. Ne jamais le versionner.
+> ⚠️ Ce fichier contient des credentials.
 
 #### 3. Générer le fichier `known_hosts`
 
@@ -216,7 +216,7 @@ REMOTE_CSV=/var/log/asterisk/cdr.csv  # Path to the CDR file on the remote serve
 PYTHON_EXE=/usr/bin/python3           # Python interpreter path (optional)
 ```
 
-> ⚠️ This file contains credentials. Never commit it.
+> ⚠️ This file contains credentials.
 
 #### 3. Generate the `known_hosts` file
 
