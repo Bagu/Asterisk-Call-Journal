@@ -1,7 +1,7 @@
 <?php
 /**
  * Cadenas de caracteres en español — archivo de locale.
- * Clés organisées par fichier/section pour faciliter la traduction.
+ * Claves organizadas por archivo/sección para facilitar la traducción.
  */
 return [
     // ── Navigation ────────────────────────────────────────────────────────────
@@ -212,7 +212,7 @@ return [
     'common.access_denied_short'=> 'Acceso denegado.',
     'common.clear_error'        => 'Error al vaciar.',
 
-    // ── sync ─────────────────────────────────────────────────────────────────
+    // ── sync.php ──────────────────────────────────────────────────────────────
     'sync.err_method'           => 'Método no permitido.',
     'sync.err_exec'             => 'La función exec() está desactivada en este servidor.',
     'sync.err_script'           => 'Script de sincronización no encontrado en el servidor.',
