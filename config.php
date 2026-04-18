@@ -129,7 +129,7 @@ function initDB(PDO $db): void {
         ['666', 'Blacklist dernier app.', 'blacklist'],
         ['667', 'Blacklist nº manuel',    'blacklist'],
         ['999', 'Retrait blacklist',      'blacklist'],
-        ['101', 'PC Bagu',                'local'],
+        ['101', 'Softphone',              'local'],
         ['111', 'PC Bureau',              'local'],
         ['121', 'Smartphone',             'local'],
         ['131', 'Base DECT',              'local'],
