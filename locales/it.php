@@ -1,7 +1,7 @@
 <?php
 /**
  * Stringhe in italiano — file di locale.
- * Clés organisées par fichier/section pour faciliter la traduction.
+ * Chiavi organizzate per file/sezione per facilitare la traduzione.
  */
 return [
     // ── Navigation ────────────────────────────────────────────────────────────
@@ -16,7 +16,7 @@ return [
     'index.sync'                => 'Sincronizza',
     'index.syncing'             => 'Sync…',
     'index.vider'               => 'Svuota',
-    'index.vider_confirm'       => 'Svuotare l'intero registro? Operazione irreversibile.',
+    'index.vider_confirm'       => 'Svuotare l\'intero registro? Operazione irreversibile.',
     'index.filter.numero'       => 'Numero / Nome',
     'index.filter.etat'         => 'Stato',
     'index.filter.tous'         => 'Tutti',
@@ -95,8 +95,8 @@ return [
     'users.err_password'        => 'Password troppo corta (minimo 8 caratteri).',
     'users.err_duplicate'       => 'Questo nome utente è già in uso.',
     'users.err_role'            => 'Ruolo non valido.',
-    'users.err_last_admin_deg'  => 'Impossibile declassare l'ultimo amministratore.',
-    'users.err_last_admin_del'  => 'Impossibile eliminare l'ultimo amministratore.',
+    'users.err_last_admin_deg'  => 'Impossibile declassare l\'ultimo amministratore.',
+    'users.err_last_admin_del'  => 'Impossibile eliminare l\'ultimo amministratore.',
     'users.err_self_delete'     => 'Non puoi eliminare il tuo stesso account.',
     'users.err_not_found'       => 'Utente non trovato.',
     'users.ok_created'          => 'Utente « {name} » creato con ruolo « {role} ».',
@@ -156,7 +156,7 @@ return [
     'contacts.err_upload'       => 'Errore di caricamento (codice {code}).',
     'contacts.err_size'         => 'File troppo grande (max. 4 MB).',
     'contacts.err_mime'         => 'Tipo di file non valido.',
-    'contacts.err_import'       => 'Errore durante l'importazione CSV.',
+    'contacts.err_import'       => 'Errore durante l\'importazione CSV.',
     'contacts.csv_file_label'   => 'File CSV *',
     'contacts.nom_label'        => 'Nome *',
     'contacts.num_label'        => 'Numero',
@@ -193,7 +193,7 @@ return [
     'speciaux.save'             => 'Salva',
     'speciaux.err_invalid'      => 'Numero non valido o etichetta mancante.',
     'speciaux.err_num_invalid'  => 'Numero non valido.',
-    'speciaux.err_lib_vide'     => 'L'etichetta non può essere vuota.',
+    'speciaux.err_lib_vide'     => 'L\'etichetta non può essere vuota.',
     'speciaux.ok_saved'         => 'Numero speciale « {num} » salvato.',
     'speciaux.ok_deleted'       => 'Numero « {num} » eliminato.',
     'speciaux.ok_updated'       => 'Numero « {num} » aggiornato.',
@@ -207,7 +207,7 @@ return [
     'common.access_denied_msg'  => 'Questa pagina è riservata agli amministratori.',
     'common.back_journal'       => '← Torna al registro',
     'common.csrf_error'         => 'Richiesta non valida (CSRF).',
-    'common.session_expired'    => 'Sessione scaduta. Effettua nuovamente l'accesso.',
+    'common.session_expired'    => 'Sessione scaduta. Effettua nuovamente l\'accesso.',
     'common.db_error'           => 'Impossibile connettersi al database.',
     'common.access_denied_short'=> 'Accesso negato.',
     'common.clear_error'        => 'Errore durante lo svuotamento.',
