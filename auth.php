@@ -149,6 +149,11 @@ function requireLogin(): void {
         $stmt->execute([$_SESSION['user_id']]);
         $user = $stmt->fetch();
         if ($user) {
+            // Régénère l'ID de session si le rôle a changé depuis la dernière requête
+            // (protection contre la réutilisation d'une session avec d'anciens privilèges)
+            if (($_SESSION['role'] ?? null) !== $user['role']) {
+                session_regenerate_id(true);
+            }
             // Rafraîchit les données de session (rôle peut avoir changé)
             $_SESSION['username'] = $user['username'];
             $_SESSION['role']     = $user['role'];
