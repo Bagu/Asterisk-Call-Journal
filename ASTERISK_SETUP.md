@@ -87,7 +87,7 @@ Special numbers are stored in the `numeros_speciaux` SQLite table. Default entri
 | `666` | Blacklist the last caller | `blacklist` |
 | `667` | Blacklist a number entered on the keypad | `blacklist` |
 | `999` | Remove a number from the blacklist | `blacklist` |
-| `101` | Internal extension — PC Bagu | `local` |
+| `101` | Internal extension — Softphone | `local` |
 | `111` | Internal extension — Office PC | `local` |
 | `121` | Internal extension — Smartphone | `local` |
 | `131` | Internal extension — DECT base station | `local` |
@@ -211,7 +211,7 @@ Les numéros spéciaux sont stockés dans la table SQLite `numeros_speciaux`. Le
 | `666` | Blacklister le dernier appelant | `blacklist` |
 | `667` | Blacklister un numéro saisi au clavier | `blacklist` |
 | `999` | Retirer un numéro de la blacklist | `blacklist` |
-| `101` | Poste interne — PC Bagu | `local` |
+| `101` | Poste interne — Softphone | `local` |
 | `111` | Poste interne — PC Bureau | `local` |
 | `121` | Poste interne — Smartphone | `local` |
 | `131` | Poste interne — Base DECT | `local` |
