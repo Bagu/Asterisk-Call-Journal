@@ -138,12 +138,14 @@ foreach ($db->query("SELECT * FROM numeros_speciaux ORDER BY categorie, numero")
                 <td><?= htmlspecialchars($s['label']) ?></td>
                 <td><span class="badge-cat badge-cat-<?= htmlspecialchars($s['categorie']) ?>"><?= htmlspecialchars($s['categorie']) ?></span></td>
                 <td>
-                    <button class="btn btn-orange"
-                            onclick="openEdit(<?= json_encode($s['numero'], JSON_HEX_TAG|JSON_HEX_QUOT|JSON_HEX_AMP) ?>, <?= json_encode($s['label'], JSON_HEX_TAG|JSON_HEX_QUOT|JSON_HEX_AMP) ?>, <?= json_encode($s['categorie'], JSON_HEX_TAG|JSON_HEX_QUOT|JSON_HEX_AMP) ?>)">
+                    <button class="btn btn-orange btn-edit-special"
+                            data-numero="<?= htmlspecialchars($s['numero']) ?>"
+                            data-label="<?= htmlspecialchars($s['label']) ?>"
+                            data-categorie="<?= htmlspecialchars($s['categorie']) ?>">
                         ✏️ <?= htmlspecialchars(t('speciaux.btn_edit')) ?>
                     </button>
-                    <form method="post" style="display:inline"
-                          onsubmit="return confirm(<?= json_encode(t('speciaux.delete_confirm', ['num' => $s['numero']]), JSON_HEX_QUOT|JSON_HEX_TAG|JSON_HEX_AMP) ?>)">
+                    <form method="post" class="form-confirm" style="display:inline"
+                          data-confirm="<?= htmlspecialchars(t('speciaux.delete_confirm', ['num' => $s['numero']])) ?>">
                         <?= csrfField() ?>
                         <input type="hidden" name="action"  value="delete">
                         <input type="hidden" name="numero"  value="<?= htmlspecialchars($s['numero']) ?>">
@@ -177,8 +179,7 @@ foreach ($db->query("SELECT * FROM numeros_speciaux ORDER BY categorie, numero")
                 <?php endforeach; ?>
             </select>
             <div class="modal-actions">
-                <button type="button" class="btn btn-gray"
-                        onclick="document.getElementById('modal-edit').classList.remove('open')">
+                <button type="button" class="btn btn-gray btn-close-modal" data-modal="modal-edit">
                     <?= htmlspecialchars(t('speciaux.cancel')) ?>
                 </button>
                 <button type="submit" class="btn btn-blue"><?= htmlspecialchars(t('speciaux.save')) ?></button>
@@ -187,7 +188,8 @@ foreach ($db->query("SELECT * FROM numeros_speciaux ORDER BY categorie, numero")
     </div>
 </div>
 
-<script>
+<script nonce="<?= htmlspecialchars(cspNonce()) ?>">
+/** Ouvre la modale d'édition en remplissant les champs depuis les data-attributes du bouton. */
 function openEdit(num, label, cat) {
     document.getElementById('edit-num').value               = num;
     document.getElementById('edit-num-display').textContent = num;
@@ -195,6 +197,29 @@ function openEdit(num, label, cat) {
     [...document.getElementById('edit-cat').options].forEach(o => o.selected = o.value === cat);
     document.getElementById('modal-edit').classList.add('open');
 }
+
+// Boutons d'édition : récupère les valeurs via data-* (plus d'onclick inline)
+document.querySelectorAll('.btn-edit-special').forEach(btn => {
+    btn.addEventListener('click', () => {
+        openEdit(btn.dataset.numero, btn.dataset.label, btn.dataset.categorie);
+    });
+});
+
+// Boutons de fermeture de modale (data-modal cible l'ID à fermer)
+document.querySelectorAll('.btn-close-modal').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.getElementById(btn.dataset.modal).classList.remove('open');
+    });
+});
+
+// Formulaires à confirmation (attribut data-confirm sur la <form>)
+document.querySelectorAll('form.form-confirm').forEach(f => {
+    f.addEventListener('submit', e => {
+        if (!confirm(f.dataset.confirm)) e.preventDefault();
+    });
+});
+
+// Fermeture de la modale par clic sur l'overlay
 document.getElementById('modal-edit').addEventListener('click', function(e) {
     if (e.target === this) this.classList.remove('open');
 });
