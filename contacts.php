@@ -385,8 +385,8 @@ $contacts = $stmtC->fetchAll();
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
         <h3 style="margin:0">📋 <?= htmlspecialchars(t('contacts.list')) ?></h3>
         <?php if ($nbSansNumero > 0): ?>
-        <form method="post" style="display:inline"
-              onsubmit="return confirm(<?= json_encode(t('contacts.purge_confirm', ['n' => $nbSansNumero]), JSON_HEX_TAG|JSON_HEX_QUOT|JSON_HEX_AMP) ?>)">
+        <form method="post" class="form-confirm" style="display:inline"
+              data-confirm="<?= htmlspecialchars(t('contacts.purge_confirm', ['n' => $nbSansNumero])) ?>">
             <?= csrfField() ?>
             <input type="hidden" name="action" value="purge_sans_numeros">
             <button type="submit" class="btn btn-orange" style="font-size:.78rem;padding:4px 9px">
@@ -486,7 +486,7 @@ $contacts = $stmtC->fetchAll();
                             <?= csrfField() ?>
                             <input type="hidden" name="action"    value="edit_numero_type">
                             <input type="hidden" name="numero_id" value="<?= (int)$n['id'] ?>">
-                            <select name="type" onchange="this.form.submit()"
+                            <select name="type" class="select-auto-submit"
                                     style="font-size:.73rem;padding:1px 4px;border-radius:10px;border:1px solid #ccc;">
                                 <?php foreach ($types as $typ): ?>
                                     <option value="<?= $typ ?>" <?= $n['type'] === $typ ? 'selected' : '' ?>><?= htmlspecialchars(t('contacts.type.' . $typ)) ?></option>
@@ -495,8 +495,8 @@ $contacts = $stmtC->fetchAll();
                         </form>
                         <?php $numFmt = afficherNumero($n['numero']); ?>
                         <a href="tel:<?= htmlspecialchars($numFmt['tel']) ?>" class="num-lien"><?= $numFmt['html'] ?></a>
-                        <form method="post" style="display:inline"
-                              onsubmit="return confirm(<?= json_encode(t('contacts.del_num_confirm'), JSON_HEX_TAG|JSON_HEX_QUOT|JSON_HEX_AMP) ?>)">
+                        <form method="post" class="form-confirm" style="display:inline"
+                              data-confirm="<?= htmlspecialchars(t('contacts.del_num_confirm')) ?>">
                             <?= csrfField() ?>
                             <input type="hidden" name="action"    value="delete_numero">
                             <input type="hidden" name="numero_id" value="<?= (int)$n['id'] ?>">
@@ -512,12 +512,14 @@ $contacts = $stmtC->fetchAll();
                 <?= htmlspecialchars(substr($contact['created_at'] ?? '', 0, 10)) ?>
             </td>
             <td style="white-space:nowrap">
-                <button class="btn btn-orange"
-                        onclick="openEdit(<?= (int)$contact['id'] ?>, <?= json_encode($contact['nom'], JSON_HEX_TAG|JSON_HEX_QUOT|JSON_HEX_AMP) ?>)">✏️</button>
-                <button class="btn btn-blue" style="font-size:.78rem;padding:4px 9px"
-                        onclick="openAddNum(<?= (int)$contact['id'] ?>, <?= json_encode($contact['nom'], JSON_HEX_TAG|JSON_HEX_QUOT|JSON_HEX_AMP) ?>)">+ <?= htmlspecialchars(t('contacts.col.numeros')) ?></button>
-                <form method="post" style="display:inline"
-                      onsubmit="return confirm(<?= json_encode(t('contacts.delete_confirm', ['name' => $contact['nom']]), JSON_HEX_TAG|JSON_HEX_QUOT|JSON_HEX_AMP) ?>)">
+                <button class="btn btn-orange btn-edit-contact"
+                        data-contact-id="<?= (int)$contact['id'] ?>"
+                        data-contact-nom="<?= htmlspecialchars($contact['nom']) ?>">✏️</button>
+                <button class="btn btn-blue btn-add-num" style="font-size:.78rem;padding:4px 9px"
+                        data-contact-id="<?= (int)$contact['id'] ?>"
+                        data-contact-nom="<?= htmlspecialchars($contact['nom']) ?>">+ <?= htmlspecialchars(t('contacts.col.numeros')) ?></button>
+                <form method="post" class="form-confirm" style="display:inline"
+                      data-confirm="<?= htmlspecialchars(t('contacts.delete_confirm', ['name' => $contact['nom']])) ?>">
                     <?= csrfField() ?>
                     <input type="hidden" name="action"     value="delete_contact">
                     <input type="hidden" name="contact_id" value="<?= (int)$contact['id'] ?>">
@@ -542,8 +544,9 @@ $contacts = $stmtC->fetchAll();
             <label class="lbl"><?= htmlspecialchars(t('contacts.modal_edit_label')) ?></label>
             <input type="text" name="nom" id="edit-nom" style="width:100%" required>
             <div class="modal-actions">
-                <button type="button" class="btn btn-gray"
-                        onclick="closeModal('modal-edit')"><?= htmlspecialchars(t('users.cancel')) ?></button>
+                <button type="button" class="btn btn-gray btn-close-modal" data-modal="modal-edit">
+                    <?= htmlspecialchars(t('users.cancel')) ?>
+                </button>
                 <button type="submit" class="btn btn-blue"><?= htmlspecialchars(t('users.save')) ?></button>
             </div>
         </form>
@@ -570,28 +573,60 @@ $contacts = $stmtC->fetchAll();
                 <?php endforeach; ?>
             </select>
             <div class="modal-actions">
-                <button type="button" class="btn btn-gray"
-                        onclick="closeModal('modal-addnum')"><?= htmlspecialchars(t('users.cancel')) ?></button>
+                <button type="button" class="btn btn-gray btn-close-modal" data-modal="modal-addnum">
+                    <?= htmlspecialchars(t('users.cancel')) ?>
+                </button>
                 <button type="submit" class="btn btn-blue"><?= htmlspecialchars(t('contacts.add_btn')) ?></button>
             </div>
         </form>
     </div>
 </div>
 
-<script>
+<script nonce="<?= htmlspecialchars(cspNonce()) ?>">
+/** Remplit et ouvre la modale d'édition d'un contact. */
 function openEdit(id, nom) {
     document.getElementById('edit-contact-id').value = id;
     document.getElementById('edit-nom').value        = nom;
     document.getElementById('modal-edit').classList.add('open');
 }
+/** Remplit et ouvre la modale d'ajout d'un numéro pour un contact. */
 function openAddNum(id, nom) {
     document.getElementById('addnum-contact-id').value      = id;
     document.getElementById('addnum-nom-display').textContent = nom;
     document.getElementById('addnum-numero').value          = '';
     document.getElementById('modal-addnum').classList.add('open');
 }
+/** Ferme une modale par son id. */
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
+// Boutons "✏️" : ouvre la modale d'édition (data-contact-id/nom)
+document.querySelectorAll('.btn-edit-contact').forEach(btn => {
+    btn.addEventListener('click', () => openEdit(btn.dataset.contactId, btn.dataset.contactNom));
+});
+
+// Boutons "+ Numéro" : ouvre la modale d'ajout de numéro
+document.querySelectorAll('.btn-add-num').forEach(btn => {
+    btn.addEventListener('click', () => openAddNum(btn.dataset.contactId, btn.dataset.contactNom));
+});
+
+// Boutons de fermeture de modale (data-modal cible l'ID à fermer)
+document.querySelectorAll('.btn-close-modal').forEach(btn => {
+    btn.addEventListener('click', () => closeModal(btn.dataset.modal));
+});
+
+// Sélecteurs à soumission automatique au changement (type de numéro)
+document.querySelectorAll('select.select-auto-submit').forEach(sel => {
+    sel.addEventListener('change', () => sel.form.submit());
+});
+
+// Formulaires à confirmation (attribut data-confirm sur la <form>)
+document.querySelectorAll('form.form-confirm').forEach(f => {
+    f.addEventListener('submit', e => {
+        if (!confirm(f.dataset.confirm)) e.preventDefault();
+    });
+});
+
+// Fermeture des modales par clic sur l'overlay
 ['modal-edit', 'modal-addnum'].forEach(id => {
     document.getElementById(id).addEventListener('click', function(e) {
         if (e.target === this) closeModal(id);
