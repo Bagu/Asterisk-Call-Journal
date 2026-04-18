@@ -103,7 +103,11 @@ return [
     'users.ok_pwd_reset'        => 'Password reset successfully.',
     'users.ok_role'             => 'Role updated.',
     'users.ok_deleted'          => 'User deleted.',
-	'users.err_self_role'       => 'You cannot change your own role.',
+    'users.err_self_role'       => 'You cannot change your own role.',
+    'users.role_badge_admin'    => '★ Admin',
+    'users.role_badge_user'     => '● User',
+    'users.role_short_admin'    => 'Admin',
+    'users.role_short_user'     => 'User',
 
     // ── contacts.php ──────────────────────────────────────────────────────────
     'contacts.title'            => 'Contacts',
@@ -193,8 +197,12 @@ return [
     'speciaux.ok_saved'         => 'Special number « {num} » saved.',
     'speciaux.ok_deleted'       => 'Number « {num} » deleted.',
     'speciaux.ok_updated'       => 'Number « {num} » updated.',
+    'speciaux.cat.system'       => 'System',
+    'speciaux.cat.local'        => 'Local',
+    'speciaux.cat.blacklist'    => 'Blacklist',
+    'speciaux.cat.autre'        => 'Other',
 
-    // ── Commun ────────────────────────────────────────────────────────────────
+    // ── Common ────────────────────────────────────────────────────────────────
     'common.access_denied'      => 'Access denied',
     'common.access_denied_msg'  => 'This page is restricted to administrators.',
     'common.back_journal'       => '← Back to call log',
@@ -203,14 +211,8 @@ return [
     'common.db_error'           => 'Unable to connect to the database.',
     'common.access_denied_short'=> 'Access denied.',
     'common.clear_error'        => 'Error while clearing the log.',
-    'users.role_badge_admin'    => '★ Admin',
-    'users.role_badge_user'     => '● User',
-    'users.role_short_admin'    => 'Admin',
-    'users.role_short_user'     => 'User',
-    'speciaux.cat.system'       => 'System',
-    'speciaux.cat.local'        => 'Local',
-    'speciaux.cat.blacklist'    => 'Blacklist',
-    'speciaux.cat.autre'        => 'Other',
+	
+	// ── sync.php ──────────────────────────────────────────────────────────────
     'sync.err_method'           => 'Method not allowed.',
     'sync.err_exec'             => 'The exec() function is disabled on this server.',
     'sync.err_script'           => 'Synchronisation script not found on the server.',
