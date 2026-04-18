@@ -19,12 +19,25 @@ session_set_cookie_params([
 ]);
 unset($_isHttps);
 
+/** Retourne le nonce CSP de la requête courante (généré une seule fois par requête).
+ *  À injecter dans chaque balise <script> inline autorisée. */
+function cspNonce(): string {
+    static $nonce = null;
+    if ($nonce === null) {
+        $nonce = base64_encode(random_bytes(16));
+    }
+    return $nonce;
+}
+
 /** Envoie les en-têtes de sécurité HTTP standards (clickjacking, sniffing, referrer, CSP, HSTS). */
 function sendSecurityHeaders(): void {
     header('X-Frame-Options: SAMEORIGIN');
     header('X-Content-Type-Options: nosniff');
     header('Referrer-Policy: same-origin');
-    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'");
+    // CSP stricte : scripts autorisés uniquement avec le nonce de la requête,
+    // plus de 'unsafe-inline'. Les styles inline restent permis (tolérance pragmatique).
+    $nonce = cspNonce();
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-$nonce'; style-src 'self' 'unsafe-inline'");
     // HSTS : force HTTPS pour 1 an (ne pas activer si le site n'est pas 100% HTTPS)
     if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
         header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
