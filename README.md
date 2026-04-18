@@ -61,7 +61,7 @@ interface responsive avec scroll infini, filtres et recherche par numéro.
 #### 1. Cloner le dépôt
 
 ```bash
-git clone https://github.com/Bagu/journal-appels.git /var/www/journal
+git clone https://github.com/Bagu/Asterisk-Call-Journal.git /var/www/journal
 ```
 
 #### 2. Créer le fichier de configuration `.env`
@@ -73,7 +73,7 @@ sous Linux, `C:\secrets\journal.env` sous Windows).
 DEBIAN_IP=192.168.1.10               # Adresse IP du serveur Asterisk
 SSH_USER=asterisk                     # Utilisateur SSH
 SSH_PASS=mot_de_passe_fort            # Mot de passe SSH
-REMOTE_CSV=/var/log/asterisk/cdr.csv  # Chemin du fichier CDR sur le serveur distant
+REMOTE_CSV=/var/log/asterisk/cdr-custom/appels.csv  # Chemin du fichier CDR sur le serveur distant
 PYTHON_EXE=/usr/bin/python3           # Chemin de l'interpréteur Python (optionnel)
 ```
 
@@ -201,7 +201,7 @@ and phone number search.
 #### 1. Clone the repository
 
 ```bash
-git clone https://github.com/Bagu/asterisk-call-journal.git /var/www/journal
+git clone https://github.com/Bagu/Asterisk-Call-Journal.git /var/www/journal
 ```
 
 #### 2. Create the `.env` configuration file
@@ -213,7 +213,7 @@ Place this file **outside the web root** (e.g. `/etc/secrets/journal.env` on Lin
 DEBIAN_IP=192.168.1.10               # Asterisk server IP address
 SSH_USER=asterisk                     # SSH username
 SSH_PASS=strong_password              # SSH password
-REMOTE_CSV=/var/log/asterisk/cdr.csv  # Path to the CDR file on the remote server
+REMOTE_CSV=/var/log/asterisk/cdr-custom/appels.csv  # Path to the CDR file on the remote server
 PYTHON_EXE=/usr/bin/python3           # Python interpreter path (optional)
 ```
 
