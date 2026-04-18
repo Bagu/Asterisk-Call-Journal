@@ -103,7 +103,11 @@ return [
     'users.ok_pwd_reset'        => 'Mot de passe réinitialisé.',
     'users.ok_role'             => 'Rôle mis à jour.',
     'users.ok_deleted'          => 'Utilisateur supprimé.',
-	'users.err_self_role'       => 'Vous ne pouvez pas modifier votre propre rôle.',
+    'users.err_self_role'       => 'Vous ne pouvez pas modifier votre propre rôle.',
+    'users.role_badge_admin'    => '★ Admin',
+    'users.role_badge_user'     => '● User',
+    'users.role_short_admin'    => 'Admin',
+    'users.role_short_user'     => 'User',
 
     // ── contacts.php ──────────────────────────────────────────────────────────
     'contacts.title'            => 'Contacts',
@@ -193,6 +197,10 @@ return [
     'speciaux.ok_saved'         => 'Numéro spécial « {num} » enregistré.',
     'speciaux.ok_deleted'       => 'Numéro « {num} » supprimé.',
     'speciaux.ok_updated'       => 'Numéro « {num} » mis à jour.',
+    'speciaux.cat.system'       => 'Système',
+    'speciaux.cat.local'        => 'Local',
+    'speciaux.cat.blacklist'    => 'Blacklist',
+    'speciaux.cat.autre'        => 'Autre',
 
     // ── Commun ────────────────────────────────────────────────────────────────
     'common.access_denied'      => 'Accès refusé',
@@ -203,18 +211,12 @@ return [
     'common.db_error'           => 'Impossible de se connecter à la base de données.',
     'common.access_denied_short'=> 'Accès refusé.',
     'common.clear_error'        => 'Erreur lors du vidage.',
-    'users.role_badge_admin'    => '★ Admin',
-    'users.role_badge_user'     => '● User',
-    'users.role_short_admin'    => 'Admin',
-    'users.role_short_user'     => 'User',
-    'speciaux.cat.system'       => 'System',
-    'speciaux.cat.local'        => 'Local',
-    'speciaux.cat.blacklist'    => 'Blacklist',
-    'speciaux.cat.autre'        => 'Autre',
+	
+	// ── sync.php ──────────────────────────────────────────────────────────────
     'sync.err_method'           => 'Méthode non autorisée.',
     'sync.err_exec'             => 'La fonction exec() est désactivée sur ce serveur.',
     'sync.err_script'           => 'Script de synchronisation introuvable sur le serveur.',
     'sync.done'                 => 'Synchronisation terminée.',
     'sync.err_code'             => 'Erreur de synchronisation (code {code}).',
-    'sync.err_busy'             => 'Synchronisation déjà en cours',
+    'sync.err_busy'             => 'Synchronisation déjà en cours.',
 ];
