@@ -198,7 +198,7 @@ function openEdit(num, label, cat) {
     document.getElementById('modal-edit').classList.add('open');
 }
 
-// Boutons d'édition : récupère les valeurs via data-* (plus d'onclick inline)
+// Boutons d'édition : récupère les valeurs via data-attributes
 document.querySelectorAll('.btn-edit-special').forEach(btn => {
     btn.addEventListener('click', () => {
         openEdit(btn.dataset.numero, btn.dataset.label, btn.dataset.categorie);
