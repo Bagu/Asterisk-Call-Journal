@@ -76,6 +76,9 @@ if ($action === 'change_role') {
 
     if (!$role) {
         $errors[] = t('users.err_role');
+    } elseif ($userId === (int)($_SESSION['user_id'] ?? 0)) {
+        // Empêche un admin de modifier son propre rôle (cohérent avec delete_user)
+        $errors[] = t('users.err_self_role');
     } else {
         // Empêche de rétrograder le dernier admin
         $row = $authDb->prepare("SELECT role FROM users WHERE id = ?");
