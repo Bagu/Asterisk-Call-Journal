@@ -56,6 +56,22 @@ interface responsive avec scroll infini, filtres et recherche par numéro.
 - Python 3.12+ avec packages : `paramiko`, `python-dotenv`
 - Accès SFTP au serveur Asterisk distant
 
+Activer `mod_rewrite` et autoriser `.htaccess` :
+
+```bash
+sudo a2enmod rewrite
+sudo systemctl reload apache2
+```
+
+Dans votre VirtualHost, vérifier la présence de :
+
+```apache
+<Directory /var/www/journal>
+    AllowOverride All
+    Require all granted
+</Directory>
+```
+
 ### Installation
 
 #### 1. Cloner le dépôt
@@ -78,6 +94,24 @@ PYTHON_EXE=/usr/bin/python3           # Chemin de l'interpréteur Python (option
 ```
 
 > ⚠️ Ce fichier contient des credentials.
+
+Installez les dépendances Python :
+
+```bash
+pip install -r requirements.txt
+```
+
+Créez le dossier et sécurisez-le (Linux) :
+
+```bash
+sudo mkdir -p /etc/secrets
+sudo chown root:www-data /etc/secrets
+sudo chmod 750 /etc/secrets
+sudo cp .env.example /etc/secrets/journal.env
+sudo nano /etc/secrets/journal.env   # remplir les credentials
+sudo chown root:www-data /etc/secrets/journal.env
+sudo chmod 640 /etc/secrets/journal.env
+```
 
 #### 3. Générer le fichier `known_hosts`
 
@@ -196,6 +230,22 @@ and phone number search.
 - Python 3.12+ with packages: `paramiko`, `python-dotenv`
 - SFTP access to the remote Asterisk server
 
+Enable `mod_rewrite` and allow `.htaccess`:
+
+```bash
+sudo a2enmod rewrite
+sudo systemctl reload apache2
+```
+
+In your VirtualHost, make sure you have:
+
+```apache
+<Directory /var/www/journal>
+    AllowOverride All
+    Require all granted
+</Directory>
+```
+
 ### Installation
 
 #### 1. Clone the repository
@@ -218,6 +268,24 @@ PYTHON_EXE=/usr/bin/python3           # Python interpreter path (optional)
 ```
 
 > ⚠️ This file contains credentials.
+
+Install Python dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Create the folder and secure it (Linux):
+
+```bash
+sudo mkdir -p /etc/secrets
+sudo chown root:www-data /etc/secrets
+sudo chmod 750 /etc/secrets
+sudo cp .env.example /etc/secrets/journal.env
+sudo nano /etc/secrets/journal.env   # remplir les credentials
+sudo chown root:www-data /etc/secrets/journal.env
+sudo chmod 640 /etc/secrets/journal.env
+```
 
 #### 3. Generate the `known_hosts` file
 
