@@ -107,7 +107,7 @@ Internal extensions are `101`, `111`, `121`, `131`. They are recognized as local
 
 ### 8. SFTP access
 
-The Python script connects to the Asterisk server over SFTP using **password authentication only** (agent and local keys disabled) and validates the host via a `known_hosts` file sitting next to the script. Required environment variables (loaded from `E:\secrets\journal.env` by default):
+The Python script connects to the Asterisk server over SFTP using **password authentication only** (agent and local keys disabled) and validates the host via a `known_hosts` file sitting next to the script. Required environment variables (loaded from the path defined by `_ENV_PATH` in `sync_calls.py`):
 
 ```
 DEBIAN_IP=<asterisk.server.ip>
@@ -231,7 +231,7 @@ Les postes internes sont `101`, `111`, `121`, `131`. Ils sont reconnus comme loc
 
 ### 8. Accès SFTP
 
-Le script Python se connecte au serveur Asterisk en SFTP en **authentification par mot de passe uniquement** (agent et clés locales désactivés) et valide l'hôte via un fichier `known_hosts` placé à côté du script. Variables d'environnement requises (chargées depuis `E:\secrets\journal.env` par défaut) :
+Le script Python se connecte au serveur Asterisk en SFTP en **authentification par mot de passe uniquement** (agent et clés locales désactivés) et valide l'hôte via un fichier `known_hosts` placé à côté du script. Variables d'environnement requises (chargées depuis le chemin défini par `_ENV_PATH` dans `sync_calls.py`) :
 
 ```
 DEBIAN_IP=<ip.serveur.asterisk>
