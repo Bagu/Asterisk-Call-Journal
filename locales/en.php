@@ -103,6 +103,7 @@ return [
     'users.ok_pwd_reset'        => 'Password reset successfully.',
     'users.ok_role'             => 'Role updated.',
     'users.ok_deleted'          => 'User deleted.',
+	'users.err_self_role'       => 'You cannot change your own role.',
 
     // ── contacts.php ──────────────────────────────────────────────────────────
     'contacts.title'            => 'Contacts',
