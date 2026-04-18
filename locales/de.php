@@ -1,7 +1,7 @@
 <?php
 /**
- * Deutsche Zeichenketten — locale file.
- * Clés organisées par fichier/section pour faciliter la traduction.
+ * Deutsche Zeichenketten — Locale-Datei.
+ * Schlüssel sind nach Datei/Abschnitt gruppiert, um die Übersetzung zu erleichtern.
  */
 return [
     // ── Navigation ────────────────────────────────────────────────────────────
@@ -212,7 +212,7 @@ return [
     'common.access_denied_short'=> 'Zugriff verweigert.',
     'common.clear_error'        => 'Fehler beim Leeren.',
 
-    // ── sync ─────────────────────────────────────────────────────────────────
+    // ── sync.php ──────────────────────────────────────────────────────────────
     'sync.err_method'           => 'Methode nicht erlaubt.',
     'sync.err_exec'             => 'Die Funktion exec() ist auf diesem Server deaktiviert.',
     'sync.err_script'           => 'Synchronisationsskript nicht auf dem Server gefunden.',
