@@ -104,6 +104,10 @@ def fetch_remote_calls(conn: sqlite3.Connection) -> int:
     try:
         cutoff = datetime.now() - timedelta(days=365)
 
+        # Initialisation explicite : garantit que recent_rows est défini même
+        # si une exception survient pendant les opérations SFTP avant son affectation.
+        recent_rows: list[list[str]] = []
+
         with ssh.open_sftp() as sftp:
             # ── Vérification mtime + taille avant téléchargement ──────────────
             stat = sftp.stat(REMOTE_CSV)
