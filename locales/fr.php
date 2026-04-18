@@ -103,6 +103,7 @@ return [
     'users.ok_pwd_reset'        => 'Mot de passe réinitialisé.',
     'users.ok_role'             => 'Rôle mis à jour.',
     'users.ok_deleted'          => 'Utilisateur supprimé.',
+	'users.err_self_role'       => 'Vous ne pouvez pas modifier votre propre rôle.',
 
     // ── contacts.php ──────────────────────────────────────────────────────────
     'contacts.title'            => 'Contacts',
