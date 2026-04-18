@@ -282,7 +282,7 @@ sudo mkdir -p /etc/secrets
 sudo chown root:www-data /etc/secrets
 sudo chmod 750 /etc/secrets
 sudo cp .env.example /etc/secrets/journal.env
-sudo nano /etc/secrets/journal.env   # remplir les credentials
+sudo nano /etc/secrets/journal.env   # fill in credentials
 sudo chown root:www-data /etc/secrets/journal.env
 sudo chmod 640 /etc/secrets/journal.env
 ```
