@@ -748,6 +748,38 @@ new IntersectionObserver(entries => {
     if (prevPage >= 1) loadPageAbove(prevPage);
 }, { root: scrollZone, rootMargin: '200px', threshold: 0 }).observe(topSpacerTbody);
 
+// ── Suivi de la page dominante visible (indicateur "Page X / Y") ──────────────
+/** Détermine la page dont le tbody occupe le plus de surface dans la zone visible
+ *  et met à jour currentPage + l'indicateur. Débouncée via requestAnimationFrame. */
+let scrollRaf = null;
+function updateCurrentPageFromScroll() {
+    if (isJumping || pageWindows.length === 0) return;
+    const zoneTop    = scrollZone.scrollTop;
+    const zoneBottom = zoneTop + scrollZone.clientHeight;
+    let bestPage     = pageWindows[0].page;
+    let bestOverlap  = 0;
+
+    // Pour chaque tbody en fenêtre, calcule l'intersection verticale avec la zone visible
+    for (const pw of pageWindows) {
+        const top     = pw.tbodyEl.offsetTop;
+        const bottom  = top + pw.height;
+        const overlap = Math.max(0, Math.min(zoneBottom, bottom) - Math.max(zoneTop, top));
+        if (overlap > bestOverlap) { bestOverlap = overlap; bestPage = pw.page; }
+    }
+
+    if (bestPage !== currentPage) {
+        currentPage = bestPage;
+        updatePageInfo();
+    }
+}
+scrollZone.addEventListener('scroll', () => {
+    if (scrollRaf !== null) return;
+    scrollRaf = requestAnimationFrame(() => {
+        scrollRaf = null;
+        updateCurrentPageFromScroll();
+    });
+}, { passive: true });
+
 // ── Contrôles UI ──────────────────────────────────────────────────────────────
 document.getElementById('btn-jump-page').addEventListener('click', () => jumpToPage(jumpInput.value));
 jumpInput.addEventListener('keydown', e => { if (e.key === 'Enter') jumpToPage(e.target.value); });
