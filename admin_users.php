@@ -232,9 +232,10 @@ $currentUserId = (int)($_SESSION['user_id'] ?? 0);
                     : '<span style="color:#ccc">' . htmlspecialchars(t('users.never')) . '</span>' ?>
             </td>
             <td style="white-space:nowrap">
-                <!-- Bouton réinitialiser le mot de passe -->
-                <button class="btn btn-orange"
-                        onclick="openResetPwd(<?= (int)$u['id'] ?>, <?= htmlspecialchars(json_encode($u['username']), ENT_QUOTES, 'UTF-8') ?>)">
+                <!-- Bouton réinitialiser le mot de passe (data-* lus par le JS noncé) -->
+                <button class="btn btn-orange btn-reset-pwd"
+                        data-user-id="<?= (int)$u['id'] ?>"
+                        data-username="<?= htmlspecialchars($u['username']) ?>">
                     🔑 <?= htmlspecialchars(t('users.btn_pwd')) ?>
                 </button>
                 <!-- Changement de rôle (désactivé pour soi-même) -->
@@ -242,7 +243,7 @@ $currentUserId = (int)($_SESSION['user_id'] ?? 0);
                     <?= csrfField() ?>
                     <input type="hidden" name="action"  value="change_role">
                     <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
-                    <select name="role" onchange="this.form.submit()"
+                    <select name="role" class="select-auto-submit"
                             style="font-size:.8rem;padding:3px 6px;border-radius:5px;border:1px solid #ccc"
                             <?= $isMe ? 'disabled' : '' ?>>
                         <option value="user"  <?= $u['role'] === 'user'  ? 'selected' : '' ?>><?= htmlspecialchars(t('users.role_short_user')) ?></option>
@@ -251,8 +252,8 @@ $currentUserId = (int)($_SESSION['user_id'] ?? 0);
                 </form>
                 <!-- Suppression (désactivée pour son propre compte) -->
                 <?php if (!$isMe): ?>
-               <form method="post" style="display:inline"
-                      onsubmit="return confirm(<?= htmlspecialchars(json_encode(t('users.delete_confirm', ['name' => $u['username']])), ENT_QUOTES, 'UTF-8') ?>)">
+               <form method="post" class="form-confirm" style="display:inline"
+                      data-confirm="<?= htmlspecialchars(t('users.delete_confirm', ['name' => $u['username']])) ?>">
                     <?= csrfField() ?>
                     <input type="hidden" name="action"  value="delete_user">
                     <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
@@ -285,15 +286,16 @@ $currentUserId = (int)($_SESSION['user_id'] ?? 0);
             <input type="password" name="password" id="reset-pwd-input"
                    style="width:100%" autocomplete="new-password" required>
             <div class="modal-actions">
-                <button type="button" class="btn btn-gray"
-                        onclick="closeModal('modal-reset-pwd')"><?= htmlspecialchars(t('users.cancel')) ?></button>
+                <button type="button" class="btn btn-gray btn-close-modal" data-modal="modal-reset-pwd">
+                    <?= htmlspecialchars(t('users.cancel')) ?>
+                </button>
                 <button type="submit" class="btn btn-blue"><?= htmlspecialchars(t('users.save')) ?></button>
             </div>
         </form>
     </div>
 </div>
 
-<script>
+<script nonce="<?= htmlspecialchars(cspNonce()) ?>">
 /** Ouvre la modale de réinitialisation de mot de passe pour l'utilisateur donné. */
 function openResetPwd(id, username) {
     document.getElementById('reset-pwd-id').value              = id;
@@ -304,6 +306,31 @@ function openResetPwd(id, username) {
 /** Ferme une modale par son id. */
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
+// Boutons "Réinitialiser mot de passe" : récupération des valeurs via data-*
+document.querySelectorAll('.btn-reset-pwd').forEach(btn => {
+    btn.addEventListener('click', () => {
+        openResetPwd(btn.dataset.userId, btn.dataset.username);
+    });
+});
+
+// Sélecteurs à soumission automatique au changement (changement de rôle)
+document.querySelectorAll('select.select-auto-submit').forEach(sel => {
+    sel.addEventListener('change', () => sel.form.submit());
+});
+
+// Boutons de fermeture de modale (data-modal cible l'ID à fermer)
+document.querySelectorAll('.btn-close-modal').forEach(btn => {
+    btn.addEventListener('click', () => closeModal(btn.dataset.modal));
+});
+
+// Formulaires à confirmation (attribut data-confirm sur la <form>)
+document.querySelectorAll('form.form-confirm').forEach(f => {
+    f.addEventListener('submit', e => {
+        if (!confirm(f.dataset.confirm)) e.preventDefault();
+    });
+});
+
+// Fermeture de la modale par clic sur l'overlay
 document.getElementById('modal-reset-pwd').addEventListener('click', function(e) {
     if (e.target === this) closeModal('modal-reset-pwd');
 });
