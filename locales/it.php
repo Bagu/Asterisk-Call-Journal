@@ -212,7 +212,7 @@ return [
     'common.access_denied_short'=> 'Accesso negato.',
     'common.clear_error'        => 'Errore durante lo svuotamento.',
 
-    // ── sync ─────────────────────────────────────────────────────────────────
+    // ── sync.php ──────────────────────────────────────────────────────────────
     'sync.err_method'           => 'Metodo non consentito.',
     'sync.err_exec'             => 'La funzione exec() è disabilitata su questo server.',
     'sync.err_script'           => 'Script di sincronizzazione non trovato sul server.',
