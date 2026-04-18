@@ -11,7 +11,7 @@ import paramiko
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-_ENV_PATH = r"E:\secrets\journal.env"
+_ENV_PATH = r"/path/to/journal.env"
 dotenv.load_dotenv(_ENV_PATH)
 
 DB_PATH      = os.path.join(BASE_DIR, 'journal.db')
