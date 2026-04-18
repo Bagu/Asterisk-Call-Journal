@@ -166,6 +166,7 @@ php manage_users.php list
 - Le brute-force est limité à 5 tentatives / 15 minutes, par utilisateur ET par IP
 - Les fichiers sensibles (`.db`, `.env`, `.py`, `.csv`, `known_hosts`) sont bloqués par Apache
 - L'interface est marquée `noindex, nofollow` (non indexée par les moteurs de recherche)
+- Supprimer tests.php après validation
 
 ---
 
@@ -304,3 +305,4 @@ php manage_users.php list
 - Brute-force limited to 5 attempts / 15 minutes, per username AND per IP
 - Sensitive files (`.db`, `.env`, `.py`, `.csv`, `known_hosts`) blocked by Apache
 - Pages marked `noindex, nofollow`
+- Delete tests.php after validation
