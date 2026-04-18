@@ -52,7 +52,7 @@ if (!is_file($pyScript) || !is_readable($pyScript)) {
 }
 
 // ── Lecture de PYTHON_EXE depuis le fichier .env ──────────────────────────────
-$envPath   = 'E:/secrets/journal.env';
+$envPath   = '/path/to/journal.env';
 $pythonExe = PHP_OS_FAMILY === 'Windows' ? 'python' : 'python3';
 
 if (is_readable($envPath)) {
