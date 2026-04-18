@@ -7,17 +7,21 @@
 define('LANG_DIR',     __DIR__ . '/locales/');
 define('LANG_DEFAULT', 'fr');
 
-/** Détecte la langue préférée du navigateur parmi les fichiers disponibles dans locales/. */
+/** Détecte la langue préférée du navigateur parmi les fichiers disponibles dans locales/.
+ *  Le résultat est mémoïsé : glob() et le parsing de l'en-tête ne sont exécutés qu'une fois. */
 function detectLang(): string {
+    static $cached = null;
+    if ($cached !== null) return $cached;
+
     $files = glob(LANG_DIR . '*.php') ?: [];
     $available = array_map(fn($f) => basename($f, '.php'), $files);
     $header = $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '';
     // Ex : "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7"
     preg_match_all('/([a-z]{2})(?:-[A-Z]{2})?(?:;q=[\d.]+)?/', strtolower($header), $m);
     foreach ($m[1] as $lang) {
-        if (in_array($lang, $available, true)) return $lang;
+        if (in_array($lang, $available, true)) return $cached = $lang;
     }
-    return LANG_DEFAULT;
+    return $cached = LANG_DEFAULT;
 }
 
 /** Charge le fichier de traduction en mémoire. */
