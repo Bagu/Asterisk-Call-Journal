@@ -903,7 +903,7 @@ document.addEventListener('visibilitychange', () => {
 
 startAutoRefresh();
 
-// ── Listeners remplaçant les onclick/onsubmit inline (CSP stricte) ────────────
+// ── Listeners remplaçant les anciens handlers inline (CSP stricte) ────────────
 document.getElementById('btn-toggle-topbar').addEventListener('click', toggleTopbar);
 document.getElementById('btn-toggle-filtres').addEventListener('click', toggleFiltres);
 document.getElementById('btn-sync-main').addEventListener('click', syncAndRefresh);
