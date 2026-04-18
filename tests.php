@@ -90,7 +90,7 @@ expect('Mot contenant s → vide',       normaliserNumero('assistance'),        
 
 section('getNumeroSpecial()');
 $db = makeTestDB();
-expect('Extension locale connue',      getNumeroSpecial($db, '101'),         'PC Bagu');
+expect('Extension locale connue',      getNumeroSpecial($db, '101'),         'Softphone');
 expect('Code étoile (**1)',            getNumeroSpecial($db, '**1'),         'Répondeur');
 expect('999 (retrait blacklist)',       getNumeroSpecial($db, '999'),         'Retrait blacklist');
 expect('Inconnu → null',               getNumeroSpecial($db, '999999'),      null);
