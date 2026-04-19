@@ -36,7 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'vider
 
 // ── Filtres & pagination ──────────────────────────────────────────────────────
 $etatsValides = ['', 'ANSWERED', 'NO ANSWER'];
-$filtreEtat   = in_array(trim($_GET['etat'] ?? ''), $etatsValides, true) ? trim($_GET['etat'] ?? '') : '';
+$etatRaw      = trim($_GET['etat'] ?? '');
+$filtreEtat   = in_array($etatRaw, $etatsValides, true) ? $etatRaw : '';
 $filtreNum    = trim($_GET['numero'] ?? '');
 $page       = max(1, (int)($_GET['page'] ?? 1));
 $parPage    = 15;
