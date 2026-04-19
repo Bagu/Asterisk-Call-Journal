@@ -485,6 +485,15 @@ const I18N = {
 // Locale pour le formatage des nombres (ex: séparateur de milliers)
 const LOCALE = <?= json_encode($jsLocale) ?>;
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+/** Formate une Date JS en chaîne "YYYY-MM-DD HH:MM:SS" en heure locale.
+ *  Même référentiel que la colonne date_appel en DB (évite les décalages TZ). */
+function formatLocalDateTime(d) {
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} `
+         + `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
 // ── Windowing ─────────────────────────────────────────────────────────────────
 /** Nombre max de pages (de 15 lignes) maintenues simultanément dans le DOM.
  *  Les pages excédentaires sont déchargées du haut ; leur hauteur est conservée
@@ -703,9 +712,7 @@ async function jumpToPage(page) {
 
     try {
         // Heure locale au format "YYYY-MM-DD HH:MM:SS" (même référentiel que date_appel en DB)
-        const d = new Date();
-        const pad = n => String(n).padStart(2, '0');
-        newestDate = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        newestDate = formatLocalDateTime(new Date());
         await loadPage(page);
         currentPage = page;
         updatePageInfo();
@@ -832,9 +839,7 @@ function showNewCallsBanner(count) {
  *  newestDate est réinitialisé ici pour éviter la re-détection par le timer concurrent. */
 function dismissBanner() {
     document.getElementById('new-calls-banner').style.display = 'none';
-    const d = new Date();
-    const pad = n => String(n).padStart(2, '0');
-    newestDate = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    newestDate = formatLocalDateTime(new Date());
     jumpToPage(1);
 }
 
@@ -857,9 +862,7 @@ async function checkForNewAndBanner() {
                 // Mis à jour avant le saut pour éviter qu'un timer concurrent
                 // re-détecte les mêmes nouveaux appels
                 document.getElementById('new-calls-banner').style.display = 'none';
-                const d = new Date();
-                const pad = n => String(n).padStart(2, '0');
-                newestDate = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+                newestDate = formatLocalDateTime(new Date());
                 await jumpToPage(1);
             } else {
                 showNewCallsBanner(data.count);
