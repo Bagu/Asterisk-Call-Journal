@@ -174,9 +174,14 @@ function requireLogin(): void {
     }
 
     // Sanitize du paramètre next : chemin relatif uniquement, sans traversée
+    // ni redirection protocol-relative (//...) ou backslash
     $uri  = $_SERVER['REQUEST_URI'] ?? '';
-    $next = (preg_match('/^\/[a-zA-Z0-9\/_\-.?=&%]*$/', $uri) && !str_contains($uri, '..'))
-        ? '?next=' . urlencode($uri) : '';
+    $nextValid = str_starts_with($uri, '/')
+              && !str_starts_with($uri, '//')
+              && !str_contains($uri, '\\')
+              && !str_contains($uri, '..')
+              && preg_match('/^\/[a-zA-Z0-9\/_\-.?=&%]*$/', $uri);
+    $next = $nextValid ? '?next=' . urlencode($uri) : '';
     header('Location: login.php' . $next);
     exit;
 }
