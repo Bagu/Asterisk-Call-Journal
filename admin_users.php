@@ -214,7 +214,7 @@ $currentUserId = (int)($_SESSION['user_id'] ?? 0);
         </thead>
         <tbody>
         <?php foreach ($users as $u):
-            $isMe = ($u['id'] === $currentUserId);
+            $isMe = ((int)$u['id'] === $currentUserId);
         ?>
         <tr>
             <td>
