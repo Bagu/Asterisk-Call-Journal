@@ -106,7 +106,7 @@ if ($action === 'import_csv' && isset($_FILES['csvfile'])) {
         }
     }
 
-    if (empty($errors)) {
+    if (empty($errors) && isset($file)) {
         $content = file_get_contents($file['tmp_name']);
         if (mb_detect_encoding($content, 'UTF-8', true) === false) {
             $content = mb_convert_encoding($content, 'UTF-8', 'Windows-1252');
