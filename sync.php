@@ -3,7 +3,7 @@ ob_start(); // Indispensable : permet aux handlers d'erreur de nettoyer la sorti
 
 set_error_handler(function(int $errno, string $errstr, string $errfile, int $errline): bool {
     if (!(error_reporting() & $errno)) return false;
-    ob_clean();
+    if (ob_get_level() > 0) ob_clean();
     error_log("[sync] Erreur PHP [$errno] : $errstr ($errfile:$errline)");
     header('Content-Type: application/json');
     http_response_code(500);
@@ -12,7 +12,7 @@ set_error_handler(function(int $errno, string $errstr, string $errfile, int $err
 });
 
 set_exception_handler(function(Throwable $e): void {
-    ob_clean();
+    if (ob_get_level() > 0) ob_clean();
     error_log("[sync] Exception : " . $e->getMessage() . " ({$e->getFile()}:{$e->getLine()})");
     header('Content-Type: application/json');
     http_response_code(500);
@@ -25,7 +25,7 @@ require 'auth.php';
 requireLogin(); // Requête AJAX : retourne JSON 401 si session expirée
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    ob_clean();
+    if (ob_get_level() > 0) ob_clean();
     header('Content-Type: application/json');
     http_response_code(405);
     echo json_encode(['ok' => false, 'msg' => t('sync.err_method')]);
@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 csrfVerify();
 
 if (!function_exists('exec')) {
-    ob_clean();
+    if (ob_get_level() > 0) ob_clean();
     header('Content-Type: application/json');
     http_response_code(500);
     echo json_encode(['ok' => false, 'msg' => t('sync.err_exec')]);
@@ -43,7 +43,7 @@ if (!function_exists('exec')) {
 
 $pyScript = __DIR__ . '/sync_calls.py';
 if (!is_file($pyScript) || !is_readable($pyScript)) {
-    ob_clean();
+    if (ob_get_level() > 0) ob_clean();
     error_log("[sync] Script Python introuvable : $pyScript");
     header('Content-Type: application/json');
     http_response_code(500);
@@ -72,7 +72,7 @@ $lockFile = __DIR__ . '/sync.lock';
 $lockFp   = fopen($lockFile, 'c');
 if ($lockFp === false || !flock($lockFp, LOCK_EX | LOCK_NB)) {
     if ($lockFp) fclose($lockFp);
-    ob_clean();
+    if (ob_get_level() > 0) ob_clean();
     header('Content-Type: application/json');
     echo json_encode(['ok' => false, 'msg' => t('sync.err_busy')]);
     exit;
@@ -90,7 +90,7 @@ exec($cmd, $output, $code);
 flock($lockFp, LOCK_UN);
 fclose($lockFp);
 
-ob_clean();
+if (ob_get_level() > 0) ob_clean();
 header('Content-Type: application/json');
 if ($code === 0) {
     // Première ligne de stdout Python : résultat métier ("OK: 3 nouvel(aux) appel(s)" ou "Journal à jour")
