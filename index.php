@@ -832,7 +832,9 @@ function showNewCallsBanner(count) {
  *  newestDate est réinitialisé ici pour éviter la re-détection par le timer concurrent. */
 function dismissBanner() {
     document.getElementById('new-calls-banner').style.display = 'none';
-    newestDate = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    newestDate = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
     jumpToPage(1);
 }
 
@@ -855,7 +857,9 @@ async function checkForNewAndBanner() {
                 // Mis à jour avant le saut pour éviter qu'un timer concurrent
                 // re-détecte les mêmes nouveaux appels
                 document.getElementById('new-calls-banner').style.display = 'none';
-                newestDate = new Date().toISOString().replace('T', ' ').slice(0, 19);
+                const d = new Date();
+                const pad = n => String(n).padStart(2, '0');
+                newestDate = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
                 await jumpToPage(1);
             } else {
                 showNewCallsBanner(data.count);
