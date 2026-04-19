@@ -173,15 +173,10 @@ function requireLogin(): void {
         exit;
     }
 
-    // Sanitize du paramètre next : chemin relatif uniquement, sans traversée
-    // ni redirection protocol-relative (//...) ou backslash
+// Sanitize du paramètre next via le helper partagé
     $uri  = $_SERVER['REQUEST_URI'] ?? '';
-    $nextValid = str_starts_with($uri, '/')
-              && !str_starts_with($uri, '//')
-              && !str_contains($uri, '\\')
-              && !str_contains($uri, '..')
-              && preg_match('/^\/[a-zA-Z0-9\/_\-.?=&%]*$/', $uri);
-    $next = $nextValid ? '?next=' . urlencode($uri) : '';
+    $safe = sanitizeNext($uri);
+    $next = $safe !== '' ? '?next=' . urlencode($safe) : '';
     header('Location: login.php' . $next);
     exit;
 }
@@ -225,6 +220,19 @@ function currentUser(): ?array {
  */
 function isAdmin(): bool {
     return ($_SESSION['role'] ?? '') === 'admin';
+}
+
+/**
+ * Valide un paramètre "next" de redirection : chemin relatif uniquement,
+ * sans traversée de répertoire ni redirection protocol-relative (//domaine) ou backslash (\).
+ * Retourne la valeur sanitisée, ou '' si invalide.
+ */
+function sanitizeNext(string $raw): string {
+    if ($raw === '' || !str_starts_with($raw, '/') || str_starts_with($raw, '//')
+        || str_contains($raw, '\\') || str_contains($raw, '..')) {
+        return '';
+    }
+    return preg_match('/^\/[a-zA-Z0-9\/_\-.?=&%]*$/', $raw) ? $raw : '';
 }
 
 /**
