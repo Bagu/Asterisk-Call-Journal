@@ -60,7 +60,15 @@ if (is_readable($envPath)) {
         if ($line === '' || $line[0] === '#') continue;
         [$k, $v] = array_pad(explode('=', $line, 2), 2, '');
         if (trim($k) === 'PYTHON_EXE') {
-            $pythonExe = trim($v, "\"'");
+            $candidate = trim($v, "\"'");
+            if ($candidate !== ''
+                && !preg_match('/[;&|`$<>\n\r"\']/', $candidate)
+                && is_file($candidate)
+                && is_executable($candidate)) {
+                $pythonExe = $candidate;
+            } else {
+                error_log("[sync] PYTHON_EXE invalide ignoré : $candidate");
+            }
             break;
         }
     }
