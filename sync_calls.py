@@ -209,10 +209,12 @@ def fetch_remote_calls(conn: sqlite3.Connection) -> int:
 
         # Purge locale des appels > 1 an : exécutée au plus une fois par jour pour
         # éviter une requête DELETE inutile à chaque synchronisation.
+        # Utilise 'localtime' pour être cohérent avec le stockage de date_appel
+        # (qui provient du CSV Asterisk en heure locale serveur).
         last_purge = _get_meta(conn, 'last_purge')
         today      = datetime.now().strftime('%Y-%m-%d')
         if last_purge != today:
-            conn.execute("DELETE FROM appels WHERE date_appel < datetime('now', '-365 days')")
+            conn.execute("DELETE FROM appels WHERE date_appel < datetime('now', '-365 days', 'localtime')")
             conn.commit()
             _set_meta(conn, 'last_purge', today)
 
