@@ -1,5 +1,5 @@
 # Interdit l'accès direct aux fichiers sensibles (base de données, scripts, configuration)
-<FilesMatch "\.(db|sqlite|sqlite3|py|env|csv|ini|config)$">
+<FilesMatch "\.(db|sqlite|sqlite3|py|env|csv|ini|config|lock)$">
     Require all denied
 </FilesMatch>
 
