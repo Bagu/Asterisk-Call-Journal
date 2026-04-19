@@ -702,7 +702,10 @@ async function jumpToPage(page) {
     scrollZone.scrollTop = 0;
 
     try {
-        newestDate  = new Date().toISOString().replace('T', ' ').slice(0, 19);
+        // Heure locale au format "YYYY-MM-DD HH:MM:SS" (même référentiel que date_appel en DB)
+        const d = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        newestDate = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
         await loadPage(page);
         currentPage = page;
         updatePageInfo();
