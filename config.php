@@ -112,8 +112,9 @@ function initDB(PDO $db): void {
     // Index pour les colonnes fréquemment filtrées
     $db->exec("CREATE INDEX IF NOT EXISTS idx_appels_src       ON appels(src)");
     $db->exec("CREATE INDEX IF NOT EXISTS idx_appels_dst       ON appels(dst)");
-    $db->exec("CREATE INDEX IF NOT EXISTS idx_appels_date      ON appels(date_appel)");
+    $db->exec("CREATE INDEX IF NOT EXISTS idx_appels_date      ON appels(date_appel DESC)");
     $db->exec("CREATE INDEX IF NOT EXISTS idx_appels_etat_date ON appels(etat, date_appel DESC)");
+    $db->exec("CREATE INDEX IF NOT EXISTS idx_appels_date_duree ON appels(date_appel DESC, duree DESC)");
     $db->exec("CREATE INDEX IF NOT EXISTS idx_contacts_nom     ON contacts(nom)");
     $db->exec("CREATE INDEX IF NOT EXISTS idx_numeros_numero   ON numeros(numero)");
     $db->exec("CREATE INDEX IF NOT EXISTS idx_numeros_cid      ON numeros(contact_id)");
