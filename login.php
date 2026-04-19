@@ -18,17 +18,8 @@ if (!empty($_SESSION['user_id'])) {
 $authDb    = getAuthDB();
 $userCount = (int)$authDb->query("SELECT COUNT(*) FROM users")->fetchColumn();
 
-/** Valide un paramètre next : chemin relatif uniquement, sans traversée de répertoire
- *  ni redirection protocol-relative (//domaine) ou backslash (\). */
-function sanitizeNext(string $raw): string {
-    if ($raw === '' || !str_starts_with($raw, '/') || str_starts_with($raw, '//')
-        || str_contains($raw, '\\') || str_contains($raw, '..')) {
-        return '';
-    }
-    return preg_match('/^\/[a-zA-Z0-9\/_\-.?=&%]*$/', $raw) ? $raw : '';
-}
-
 // Sanitize du paramètre next depuis GET (affiché dans le formulaire)
+// Le helper sanitizeNext() est défini dans auth.php
 $next = sanitizeNext($_GET['next'] ?? '');
 
 $error  = '';
