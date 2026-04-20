@@ -3,6 +3,7 @@
 .env*
 known_hosts
 journal.db
+users.db
 sync.lock
 
 # Fichiers système
