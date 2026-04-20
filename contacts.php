@@ -314,7 +314,7 @@ $contacts = $stmtC->fetchAll();
             'lignes_ignorees'  => 'contacts.import_ignored',
         ] as $key => $langKey): ?>
             <div class="stat-box">
-                <div class="num"><?= htmlspecialchars((string)$importStats[$key]) ?></div>
+                <div class="num"><?= (int)$importStats[$key] ?></div>
                 <div class="lbl"><?= htmlspecialchars(t($langKey)) ?></div>
             </div>
         <?php endforeach; ?>
