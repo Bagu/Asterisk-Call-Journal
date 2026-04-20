@@ -28,9 +28,10 @@ SSH_USER   = os.environ["SSH_USER"]
 SSH_PASS   = os.environ["SSH_PASS"]
 REMOTE_CSV = os.environ["REMOTE_CSV"]
 
-
 def init_db(conn: sqlite3.Connection) -> None:
-    """Crée les tables appels et sync_meta si elles n'existent pas."""
+    """Crée les tables appels et sync_meta et leurs index si absents.
+    Les index sont identiques à ceux créés par PHP (config.php : initDB),
+    garantissant des performances correctes même si Python initialise la base en premier."""
     conn.execute("""
         CREATE TABLE IF NOT EXISTS appels (
             id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -49,6 +50,12 @@ def init_db(conn: sqlite3.Connection) -> None:
             value TEXT NOT NULL
         )
     """)
+    # Index alignés avec config.php::initDB() pour performance DELETE/SELECT
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_appels_src        ON appels(src)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_appels_dst        ON appels(dst)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_appels_date       ON appels(date_appel DESC)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_appels_etat_date  ON appels(etat, date_appel DESC)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_appels_date_duree ON appels(date_appel DESC, duree DESC)")
     conn.commit()
 
 def _parse_date(raw: str) -> datetime:
