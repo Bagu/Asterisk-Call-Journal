@@ -877,7 +877,8 @@ async function checkAndRefreshDisplay() {
     await checkForNewAndBanner();
 }
 
-/** Déclenché par le bouton Synchroniser : sync puis vérification des nouveaux appels. */
+/** Déclenché par le bouton Synchroniser : lance la sync Python puis rafraîchit l'affichage.
+ *  Si le journal était vide (newestDate absente), provoque un rechargement complet. */
 function syncAndRefresh() {
     lancerSync(async () => {
         if (!newestDate) {
