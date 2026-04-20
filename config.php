@@ -158,7 +158,8 @@ function migrateNumerosTable(PDO $db): void {
                 FOREIGN KEY(contact_id) REFERENCES contacts(id) ON DELETE CASCADE,
                 UNIQUE(numero, contact_id)
             );
-            INSERT OR IGNORE INTO numeros_new SELECT * FROM numeros;
+            INSERT OR IGNORE INTO numeros_new (id, numero, contact_id)
+                SELECT id, numero, contact_id FROM numeros;
             DROP TABLE numeros;
             ALTER TABLE numeros_new RENAME TO numeros;
             COMMIT;
