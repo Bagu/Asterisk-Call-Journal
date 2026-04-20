@@ -234,6 +234,17 @@ $rE = afficherNumero('');
 expect('Vide : tel vide',                       $rE['tel'],                             '');
 expect('Vide : html vide',                      $rE['html'],                            '');
 
+section('sanitizeNext() — anti open-redirect');
+// sanitizeNext() est défini dans auth.php, déjà chargé via require_once __DIR__ . '/auth.php' (section Auth)
+expect('Chemin relatif simple',     sanitizeNext('/index.php'),        '/index.php');
+expect('Chemin avec query',         sanitizeNext('/foo?bar=1'),        '/foo?bar=1');
+expect('Protocol-relative //',      sanitizeNext('//evil.com/path'),   '');
+expect('Triple-slash ///',          sanitizeNext('///evil.com/path'),  '');
+expect('Backslash \\\\evil',        sanitizeNext('/\\evil.com'),       '');
+expect('Traversée ..',              sanitizeNext('/foo/../bar'),       '');
+expect('URL absolue',               sanitizeNext('http://evil.com'),   '');
+expect('Vide',                      sanitizeNext(''),                  '');
+
 // ═════════════════════════════════════════════════════════════════════════════
 
 // ═════════════════════════════════════════════════════════════════════════════
