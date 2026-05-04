@@ -104,6 +104,29 @@ function recordLoginAttempt(PDO $db, string $username, string $ip, bool $success
 // ── Connexion / session ───────────────────────────────────────────────────────
 
 /**
+ * Prolonge le cookie de session en le ré-émettant avec une nouvelle date d'expiration.
+ * Implémente une session glissante : tant que l'utilisateur visite le site,
+ * son cookie est rafraîchi pour SESSION_LIFETIME secondes supplémentaires.
+ * Met aussi à jour $_SESSION['last_activity'] pour le suivi côté serveur.
+ * Multi-PC safe : chaque navigateur a son propre cookie, indépendant des autres.
+ */
+function refreshSessionCookie(): void {
+    if (headers_sent() || session_status() !== PHP_SESSION_ACTIVE) return;
+    $params = session_get_cookie_params();
+    $expires = time() + SESSION_LIFETIME;
+    // Ré-émet le cookie de session avec la nouvelle expiration (sliding window)
+    setcookie(session_name(), session_id(), [
+        'expires'  => $expires,
+        'path'     => $params['path']     ?? '/',
+        'domain'   => $params['domain']   ?? '',
+        'secure'   => $params['secure']   ?? false,
+        'httponly' => $params['httponly'] ?? true,
+        'samesite' => $params['samesite'] ?? 'Lax',
+    ]);
+    $_SESSION['last_activity'] = time();
+}
+
+/**
  * Tente une connexion avec identifiant et mot de passe.
  * Retourne true en cas de succès, 'locked' si verrouillé, false sinon.
  * Régénère l'ID de session après connexion réussie (anti-fixation).
@@ -129,37 +152,58 @@ function attemptLogin(string $username, string $password): bool|string {
 
     // Régénération de l'ID de session : prévient la fixation de session
     session_regenerate_id(true);
-    $_SESSION['user_id']  = $user['id'];
-    $_SESSION['username'] = $user['username'];
-    $_SESSION['role']     = $user['role'];
+    $_SESSION['user_id']       = $user['id'];
+    $_SESSION['username']      = $user['username'];
+    $_SESSION['role']          = $user['role'];
+    $_SESSION['last_activity'] = time(); // Initialise le suivi d'inactivité (sliding session)
+
+    // Émet immédiatement le cookie avec la durée maximale (sera prolongé à chaque visite)
+    refreshSessionCookie();
 
     return true;
 }
 
 /**
  * Exige qu'un utilisateur soit connecté.
+ * Vérifie l'inactivité (déconnexion auto si > SESSION_LIFETIME) et prolonge le cookie sinon.
  * Sur requête AJAX : répond en JSON 401 avec message traduit (pour que le JS gère la session expirée).
  * Sur requête normale : redirige vers login.php avec le paramètre ?next=.
  */
 function requireLogin(): void {
     csrfStart();
     if (!empty($_SESSION['user_id'])) {
-        // Vérifie que le compte existe toujours (suppression en cours de session)
-        $stmt = getAuthDB()->prepare("SELECT id, username, role FROM users WHERE id = ?");
-        $stmt->execute([$_SESSION['user_id']]);
-        $user = $stmt->fetch();
-        if ($user) {
-            // Régénère l'ID de session si le rôle a changé depuis la dernière requête
-            // (protection contre la réutilisation d'une session avec d'anciens privilèges)
-            if (($_SESSION['role'] ?? null) !== $user['role']) {
-                session_regenerate_id(true);
+        // Vérifie l'inactivité : si la dernière activité est trop ancienne, on déconnecte.
+        // 'last_activity' est posé à la connexion et rafraîchi à chaque requête authentifiée.
+        $last = $_SESSION['last_activity'] ?? null;
+        if ($last !== null && (time() - (int)$last) > SESSION_LIFETIME) {
+            // Session expirée par inactivité : on détruit proprement
+            $_SESSION = [];
+            if (ini_get('session.use_cookies')) {
+                $p = session_get_cookie_params();
+                setcookie(session_name(), '', time() - 42000,
+                    $p['path'], $p['domain'], $p['secure'], $p['httponly']);
             }
-            // Rafraîchit les données de session (rôle peut avoir changé)
-            $_SESSION['username'] = $user['username'];
-            $_SESSION['role']     = $user['role'];
-            return;
+            session_destroy();
+        } else {
+            // Vérifie que le compte existe toujours (suppression en cours de session)
+            $stmt = getAuthDB()->prepare("SELECT id, username, role FROM users WHERE id = ?");
+            $stmt->execute([$_SESSION['user_id']]);
+            $user = $stmt->fetch();
+            if ($user) {
+                // Régénère l'ID de session si le rôle a changé depuis la dernière requête
+                // (protection contre la réutilisation d'une session avec d'anciens privilèges)
+                if (($_SESSION['role'] ?? null) !== $user['role']) {
+                    session_regenerate_id(true);
+                }
+                // Rafraîchit les données de session (rôle peut avoir changé)
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['role']     = $user['role'];
+                // Prolonge le cookie : la session "glisse" tant que l'utilisateur revient
+                refreshSessionCookie();
+                return;
+            }
+            session_destroy();
         }
-        session_destroy();
     }
 
     $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
@@ -173,7 +217,7 @@ function requireLogin(): void {
         exit;
     }
 
-// Sanitize du paramètre next via le helper partagé
+    // Sanitize du paramètre next via le helper partagé
     $uri  = $_SERVER['REQUEST_URI'] ?? '';
     $safe = sanitizeNext($uri);
     $next = $safe !== '' ? '?next=' . urlencode($safe) : '';
