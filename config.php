@@ -8,12 +8,16 @@ define('SYNC_MODE', 'web');
 
 // ── Session sécurisée ────────────────────────────────────────────────────────
 $_isHttps = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
-// Durée de session : 30 jours — l'utilisateur reste connecté jusqu'à la déconnexion explicite
+// Durée de vie maximale du cookie (fenêtre glissante) : 30 jours.
+// Le cookie est ré-émis à chaque requête authentifiée (cf. refreshSessionCookie() dans auth.php),
+// ce qui garantit qu'une visite régulière prolonge la session indéfiniment.
+// L'utilisateur n'est déconnecté qu'après SESSION_LIFETIME jours d'INACTIVITÉ continue.
 define('SESSION_LIFETIME', 60 * 60 * 24 * 30);
 ini_set('session.cookie_secure',  $_isHttps ? 1 : 0);
-ini_set('session.gc_maxlifetime', SESSION_LIFETIME); // Durée de vie côté serveur
+ini_set('session.gc_maxlifetime', SESSION_LIFETIME); // Durée de vie côté serveur (GC)
+ini_set('session.use_strict_mode', 1);                // Refuse les session-id non générés par PHP
 session_set_cookie_params([
-    'lifetime' => SESSION_LIFETIME, // Durée de vie du cookie côté client
+    'lifetime' => SESSION_LIFETIME, // Durée initiale du cookie côté client (sera prolongée à chaque visite)
     'path'     => '/', 'domain'  => '',
     'secure'   => $_isHttps, 'httponly' => true, 'samesite' => 'Lax',
 ]);
@@ -42,7 +46,7 @@ function sendSecurityHeaders(): void {
     if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
         header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
     }
-	// Désactive l'accès aux API navigateur sensibles (caméra, micro, géoloc…)
+    // Désactive l'accès aux API navigateur sensibles (caméra, micro, géoloc…)
     header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
 }
 
@@ -130,7 +134,7 @@ function initDB(PDO $db): void {
         ['666', 'Blacklist dernier app.', 'blacklist'],
         ['667', 'Blacklist nº manuel',    'blacklist'],
         ['999', 'Retrait blacklist',      'blacklist'],
-        ['101', 'Softphone',              'local'],
+        ['101', 'PC Bagu',                'local'],
         ['111', 'PC Bureau',              'local'],
         ['121', 'Smartphone',             'local'],
         ['131', 'Base DECT',              'local'],
@@ -201,33 +205,33 @@ function chercherContactParNumero(PDO $db, string $numNorm): ?array {
 /** Retourne le libellé d'un numéro spécial ou d'un préfixe de redirection, ou null si inconnu.
  * Gère les préfixes ## (redirection directe) et #* (transfert après mise en relation). */
 function getNumeroSpecial(PDO $db, string $raw): ?string {
-	$raw = trim($raw);
-	if (!preg_match('/^[0-9s*#]+$/', $raw)) return null;
+    $raw = trim($raw);
+    if (!preg_match('/^[0-9s*#]+$/', $raw)) return null;
 
-	// Préfixe ## : redirection directe vers l'extension composée (ex : ##101)
-	if (str_starts_with($raw, '##') && strlen($raw) > 2) {
-		return t('index.redirect', ['ext' => substr($raw, 2)]);
-	}
-	// Préfixe #* : transfert après mise en relation avec l'extension composée (ex : #*101)
-	if (str_starts_with($raw, '#*') && strlen($raw) > 2) {
-		return t('index.transfert', ['ext' => substr($raw, 2)]);
-	}
+    // Préfixe ## : redirection directe vers l'extension composée (ex : ##101)
+    if (str_starts_with($raw, '##') && strlen($raw) > 2) {
+        return t('index.redirect', ['ext' => substr($raw, 2)]);
+    }
+    // Préfixe #* : transfert après mise en relation avec l'extension composée (ex : #*101)
+    if (str_starts_with($raw, '#*') && strlen($raw) > 2) {
+        return t('index.transfert', ['ext' => substr($raw, 2)]);
+    }
 
-	$stmt = $db->prepare("SELECT label FROM numeros_speciaux WHERE numero = ?");
-	$stmt->execute([$raw]);
-	$row = $stmt->fetch();
-	if ($row) return $row['label'];
+    $stmt = $db->prepare("SELECT label FROM numeros_speciaux WHERE numero = ?");
+    $stmt->execute([$raw]);
+    $row = $stmt->fetch();
+    if ($row) return $row['label'];
 
-	// Fallback sans zéros initiaux (numéros classiques uniquement, pas */#)
-	if (!str_contains($raw, '*') && !str_contains($raw, '#')) {
-		$stripped = ltrim($raw, '0');
-		if ($stripped !== $raw && $stripped !== '') {
-			$stmt->execute([$stripped]);
-			$row = $stmt->fetch();
-			if ($row) return $row['label'];
-		}
-	}
-	return null;
+    // Fallback sans zéros initiaux (numéros classiques uniquement, pas */#)
+    if (!str_contains($raw, '*') && !str_contains($raw, '#')) {
+        $stripped = ltrim($raw, '0');
+        if ($stripped !== $raw && $stripped !== '') {
+            $stmt->execute([$stripped]);
+            $row = $stmt->fetch();
+            if ($row) return $row['label'];
+        }
+    }
+    return null;
 }
 
 // ── CSRF ─────────────────────────────────────────────────────────────────────
