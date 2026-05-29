@@ -62,6 +62,20 @@ if ($filtreNum !== '') {
         $where[]  = "(a.src LIKE ? OR a.dst LIKE ?)";
         $params[] = $n;
         $params[] = $n;
+    } else {
+        $likeName = '%' . $filtreNum . '%';
+        $subSQL   = "SELECT numero FROM numeros
+                     JOIN contacts ON contacts.id = numeros.contact_id
+                     WHERE contacts.nom LIKE ?";
+        $normSrc  = "CASE WHEN LENGTH(TRIM(a.src)) = 10 AND SUBSTR(TRIM(a.src),1,1)='0'
+                          THEN SUBSTR(TRIM(a.src),2)
+                          ELSE TRIM(a.src) END";
+        $normDst  = "CASE WHEN LENGTH(TRIM(a.dst)) = 10 AND SUBSTR(TRIM(a.dst),1,1)='0'
+                          THEN SUBSTR(TRIM(a.dst),2)
+                          ELSE TRIM(a.dst) END";
+        $where[]  = "($normSrc IN ($subSQL) OR $normDst IN ($subSQL))";
+        $params[] = $likeName;
+        $params[] = $likeName;
     }
 }
 $whereSQL = $where ? 'WHERE ' . implode(' AND ', $where) : '';
