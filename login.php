@@ -55,30 +55,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userCount > 0) {
 <html lang="<?= htmlspecialchars(detectLang()) ?>">
 <head>
     <meta charset="UTF-8">
-	<meta name="robots" content="noindex, nofollow">
+    <meta name="robots" content="noindex, nofollow">
     <title><?= htmlspecialchars(t('login.title')) ?></title>
     <link rel="icon" type="image/png" href="./favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- theme.js avant le CSS pour éviter le flash de thème incorrect (FOUC) -->
+    <script src="theme.js"></script>
     <link rel="stylesheet" href="style.css">
     <style>
         /* Centrage vertical de la carte sur tout le viewport */
-        body { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:16px; }
+        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 16px; }
         /* Carte de login centrée, largeur fixe */
-        .login-card { background:white; border-radius:10px; padding:32px 28px; box-shadow:0 2px 12px #0002; width:100%; max-width:360px; }
+        .login-card { background: var(--bg-card); border-radius: 10px; padding: 32px 28px; box-shadow: var(--shadow-modal); width: 100%; max-width: 360px; }
         /* Titre avec icône centré */
-        .login-card h1 { margin:0 0 24px; font-size:1.2rem; text-align:center; color:#1a1a2e; }
+        .login-card h1 { margin: 0 0 24px; font-size: 1.2rem; text-align: center; color: var(--text-login-title); }
         /* Champs pleine largeur */
         .login-card input[type=text],
-        .login-card input[type=password] { width:100%; margin-bottom:12px; }
+        .login-card input[type=password] { width: 100%; margin-bottom: 12px; }
         /* Bouton pleine largeur */
-        .login-card .btn { width:100%; padding:10px; font-size:.95rem; }
-        /* Message d'information (aucun utilisateur configuré) */
-        .login-info { background:#e3f2fd; color:#1565c0; border:1px solid #90caf9; border-radius:6px; padding:10px 14px; margin-bottom:16px; font-size:.85rem; line-height:1.6; }
-        /* Code inline dans la carte */
-        .login-info code { background:#d0e8f8; padding:1px 5px; border-radius:3px; font-size:.82rem; }
+        .login-card .btn { width: 100%; padding: 10px; font-size: .95rem; }
+        /* Bouton thème positionné en haut à droite */
+        .theme-corner { position: fixed; top: 12px; right: 16px; }
     </style>
 </head>
 <body>
+
+<!-- Bouton thème accessible même sur la page de login -->
+<div class="theme-corner">
+    <button id="btn-theme" title="Changer de thème">🌙</button>
+</div>
+
 <div class="login-card">
     <h1>📞 <?= htmlspecialchars(t('index.title')) ?></h1>
 
