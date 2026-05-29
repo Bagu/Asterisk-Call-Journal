@@ -1,23 +1,21 @@
 <?php
-define('DB_PATH',      __DIR__ . '/journal.db');
-define('NUMERO_MASQUE', 'Masqué');
+define('DB_PATH',        __DIR__ . '/journal.db');
+define('NUMERO_MASQUE',  'Masqué');
+define('DB_SCHEMA_VERSION', 3);
 
 // 'web'  : sync Python déclenchée par le bouton / auto-refresh.
 // 'cron' : Python lancé par tâche planifiée ; l'auto-refresh ne rafraîchit que l'affichage.
 define('SYNC_MODE', 'web');
 
-// ── Session sécurisée ────────────────────────────────────────────────────────
 $_isHttps = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
-// Durée de vie maximale du cookie (fenêtre glissante) : 30 jours.
-// Le cookie est ré-émis à chaque requête authentifiée (cf. refreshSessionCookie() dans auth.php),
-// ce qui garantit qu'une visite régulière prolonge la session indéfiniment.
-// L'utilisateur n'est déconnecté qu'après SESSION_LIFETIME jours d'INACTIVITÉ continue.
+// Fenêtre glissante : le cookie est ré-émis à chaque requête authentifiée (refreshSessionCookie()).
+// Déconnexion uniquement après SESSION_LIFETIME secondes d'INACTIVITÉ continue.
 define('SESSION_LIFETIME', 60 * 60 * 24 * 30);
-ini_set('session.cookie_secure',  $_isHttps ? 1 : 0);
-ini_set('session.gc_maxlifetime', SESSION_LIFETIME); // Durée de vie côté serveur (GC)
-ini_set('session.use_strict_mode', 1);                // Refuse les session-id non générés par PHP
+ini_set('session.cookie_secure',   $_isHttps ? 1 : 0);
+ini_set('session.gc_maxlifetime',  SESSION_LIFETIME);
+ini_set('session.use_strict_mode', 1);
 session_set_cookie_params([
-    'lifetime' => SESSION_LIFETIME, // Durée initiale du cookie côté client (sera prolongée à chaque visite)
+    'lifetime' => SESSION_LIFETIME,
     'path'     => '/', 'domain'  => '',
     'secure'   => $_isHttps, 'httponly' => true, 'samesite' => 'Lax',
 ]);
@@ -33,46 +31,53 @@ function cspNonce(): string {
     return $nonce;
 }
 
-/** Envoie les en-têtes de sécurité HTTP standards (clickjacking, sniffing, referrer, CSP, HSTS). */
+/** Envoie les en-têtes de sécurité HTTP (CSP avec nonce, HSTS, nosniff, referrer, permissions). */
 function sendSecurityHeaders(): void {
-    header('X-Frame-Options: SAMEORIGIN');
+    $nonce = cspNonce();
     header('X-Content-Type-Options: nosniff');
     header('Referrer-Policy: same-origin');
-    // CSP stricte : scripts autorisés uniquement avec le nonce de la requête,
-    // plus de 'unsafe-inline'. Les styles inline restent permis (tolérance pragmatique).
-    $nonce = cspNonce();
-    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-$nonce'; style-src 'self' 'unsafe-inline'");
-    // HSTS : force HTTPS pour 1 an (ne pas activer si le site n'est pas 100% HTTPS)
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-$nonce'; style-src 'self' 'unsafe-inline'; img-src * data:; frame-ancestors 'self' https://bitwarden.bagu.biz");
+    header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
     if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
         header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
     }
-    // Désactive l'accès aux API navigateur sensibles (caméra, micro, géoloc…)
-    header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
 }
 
-// ── Base de données ───────────────────────────────────────────────────────────
 /** Retourne l'instance PDO SQLite (singleton). Configure les PRAGMAs et initialise le schéma. */
 function getDB(): PDO {
     static $db = null;
     if ($db !== null) return $db;
 
     $db = new PDO('sqlite:' . DB_PATH);
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $db->setAttribute(PDO::ATTR_ERRMODE,            PDO::ERRMODE_EXCEPTION);
     $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-
     $db->exec("PRAGMA journal_mode=WAL");
     $db->exec("PRAGMA synchronous=NORMAL");
-    $db->exec("PRAGMA cache_size=10000");    // ~10 Mo de cache en RAM
-    $db->exec("PRAGMA temp_store=MEMORY");   // tables temporaires en RAM
-    $db->exec("PRAGMA mmap_size=134217728"); // 128 Mo de mmap pour lectures rapides
+    $db->exec("PRAGMA cache_size=10000");
+    $db->exec("PRAGMA temp_store=MEMORY");
+    $db->exec("PRAGMA mmap_size=134217728");
     $db->exec("PRAGMA foreign_keys=ON");
 
     initDB($db);
     return $db;
 }
 
-/** Crée les tables, index et données par défaut si absents ; applique les migrations nécessaires. */
+/**
+ * Initialise le schéma de la base (tables, index, données par défaut).
+ * Les migrations structurelles sont toujours appliquées (bases très anciennes).
+ * Les CREATE TABLE/INDEX et INSERT sont ignorés si DB_SCHEMA_VERSION est atteinte.
+ * Pour forcer une ré-initialisation : incrémenter DB_SCHEMA_VERSION.
+ */
 function initDB(PDO $db): void {
+    migrateNumerosTable($db);
+
+    $cols = array_column($db->query("PRAGMA table_info(appels)")->fetchAll(), 'name');
+    if ($cols && !in_array('uniqueid', $cols, true)) {
+        $db->exec("ALTER TABLE appels ADD COLUMN uniqueid TEXT");
+    }
+
+    if ((int)$db->query("PRAGMA user_version")->fetchColumn() >= DB_SCHEMA_VERSION) return;
+
     $db->exec("CREATE TABLE IF NOT EXISTS contacts (
         id         INTEGER PRIMARY KEY AUTOINCREMENT,
         nom        TEXT NOT NULL UNIQUE,
@@ -100,32 +105,22 @@ function initDB(PDO $db): void {
         uniqueid   TEXT
     )");
 
-    // Migration : ajout colonne uniqueid si absente (base ancienne)
-    $cols = array_column($db->query("PRAGMA table_info(appels)")->fetchAll(), 'name');
-    if (!in_array('uniqueid', $cols, true)) {
-        $db->exec("ALTER TABLE appels ADD COLUMN uniqueid TEXT");
-    }
-    $db->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_appels_uniqueid ON appels(uniqueid)");
-
     $db->exec("CREATE TABLE IF NOT EXISTS numeros_speciaux (
         numero    TEXT PRIMARY KEY,
         label     TEXT NOT NULL,
         categorie TEXT DEFAULT 'system'
     )");
 
-    // Index pour les colonnes fréquemment filtrées
-    $db->exec("CREATE INDEX IF NOT EXISTS idx_appels_src       ON appels(src)");
-    $db->exec("CREATE INDEX IF NOT EXISTS idx_appels_dst       ON appels(dst)");
-    $db->exec("CREATE INDEX IF NOT EXISTS idx_appels_date      ON appels(date_appel DESC)");
-    $db->exec("CREATE INDEX IF NOT EXISTS idx_appels_etat_date ON appels(etat, date_appel DESC)");
-    $db->exec("CREATE INDEX IF NOT EXISTS idx_appels_date_duree ON appels(date_appel DESC, duree DESC)");
-    $db->exec("CREATE INDEX IF NOT EXISTS idx_contacts_nom     ON contacts(nom)");
-    $db->exec("CREATE INDEX IF NOT EXISTS idx_numeros_numero   ON numeros(numero)");
-    $db->exec("CREATE INDEX IF NOT EXISTS idx_numeros_cid      ON numeros(contact_id)");
+    $db->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_appels_uniqueid   ON appels(uniqueid)");
+    $db->exec("CREATE INDEX IF NOT EXISTS idx_appels_src               ON appels(src)");
+    $db->exec("CREATE INDEX IF NOT EXISTS idx_appels_dst               ON appels(dst)");
+    $db->exec("CREATE INDEX IF NOT EXISTS idx_appels_date              ON appels(date_appel DESC)");
+    $db->exec("CREATE INDEX IF NOT EXISTS idx_appels_etat_date         ON appels(etat, date_appel DESC)");
+    $db->exec("CREATE INDEX IF NOT EXISTS idx_appels_date_duree        ON appels(date_appel DESC, duree DESC)");
+    $db->exec("CREATE INDEX IF NOT EXISTS idx_contacts_nom             ON contacts(nom)");
+    $db->exec("CREATE INDEX IF NOT EXISTS idx_numeros_numero           ON numeros(numero)");
+    $db->exec("CREATE INDEX IF NOT EXISTS idx_numeros_cid              ON numeros(contact_id)");
 
-    migrateNumerosTable($db);
-
-    // Numéros spéciaux par défaut
     $stmt = $db->prepare(
         "INSERT OR IGNORE INTO numeros_speciaux (numero, label, categorie) VALUES (?,?,?)"
     );
@@ -141,9 +136,11 @@ function initDB(PDO $db): void {
     ] as $s) {
         $stmt->execute($s);
     }
+
+    $db->exec("PRAGMA user_version = " . DB_SCHEMA_VERSION);
 }
 
-/** Migration : remplace UNIQUE(numero) par UNIQUE(numero, contact_id). */
+/** Migration : remplace UNIQUE(numero) par UNIQUE(numero, contact_id) sur les bases < v2. */
 function migrateNumerosTable(PDO $db): void {
     if ((int)$db->query("PRAGMA user_version")->fetchColumn() >= 2) return;
 
@@ -172,17 +169,18 @@ function migrateNumerosTable(PDO $db): void {
     }
 }
 
-/** Normalise un numéro téléphonique : retire les espaces/tirets,
- * remplace +33 ou 0033 par 0, retourne les 9 derniers chiffres.
- * Si le numéro est entièrement composé de [0-9*#s] et contient au moins un caractère spécial
- * (*, # ou s), il est retourné tel quel : c'est un numéro spécial Asterisk. */
+/**
+ * Normalise un numéro téléphonique : retire les espaces/tirets, remplace +33/0033 par 0,
+ * retourne les 9 derniers chiffres.
+ * Les numéros composés uniquement de [0-9*#s] contenant au moins un caractère non chiffre
+ * sont retournés tels quels (numéros spéciaux Asterisk).
+ */
 function normaliserNumero(string $num): string {
     $num = trim($num);
     if ($num === '') return '';
-    // Numéro spécial : composé uniquement de chiffres, *, #, s — ET contient au moins un caractère non chiffre
     if (preg_match('/^[0-9s*#]+$/', $num) && preg_match('/[*#s]/', $num)) return $num;
-    $num = preg_replace('/^\+33/', '0', $num);   // +33XXXXXXXXX → 0XXXXXXXXX
-    $num = preg_replace('/^0033/',  '0', $num);  // 0033XXXXXXXXX → 0XXXXXXXXX
+    $num = preg_replace('/^\+33/', '0', $num);
+    $num = preg_replace('/^0033/',  '0', $num);
     $num = preg_replace('/\D/', '', $num);
     return $num ? substr($num, -9) : '';
 }
@@ -202,17 +200,17 @@ function chercherContactParNumero(PDO $db, string $numNorm): ?array {
     return ['noms' => array_column($rows, 'nom'), 'type' => $rows[0]['type']];
 }
 
-/** Retourne le libellé d'un numéro spécial ou d'un préfixe de redirection, ou null si inconnu.
- * Gère les préfixes ## (redirection directe) et #* (transfert après mise en relation). */
+/**
+ * Retourne le libellé d'un numéro spécial ou d'un préfixe de redirection, ou null si inconnu.
+ * Gère les préfixes ## (redirection directe) et #* (transfert après mise en relation).
+ */
 function getNumeroSpecial(PDO $db, string $raw): ?string {
     $raw = trim($raw);
     if (!preg_match('/^[0-9s*#]+$/', $raw)) return null;
 
-    // Préfixe ## : redirection directe vers l'extension composée (ex : ##201)
     if (str_starts_with($raw, '##') && strlen($raw) > 2) {
         return t('index.redirect', ['ext' => substr($raw, 2)]);
     }
-    // Préfixe #* : transfert après mise en relation avec l'extension composée (ex : #*201)
     if (str_starts_with($raw, '#*') && strlen($raw) > 2) {
         return t('index.transfert', ['ext' => substr($raw, 2)]);
     }
@@ -222,7 +220,6 @@ function getNumeroSpecial(PDO $db, string $raw): ?string {
     $row = $stmt->fetch();
     if ($row) return $row['label'];
 
-    // Fallback sans zéros initiaux (numéros classiques uniquement, pas */#)
     if (!str_contains($raw, '*') && !str_contains($raw, '#')) {
         $stripped = ltrim($raw, '0');
         if ($stripped !== $raw && $stripped !== '') {
@@ -234,7 +231,6 @@ function getNumeroSpecial(PDO $db, string $raw): ?string {
     return null;
 }
 
-// ── CSRF ─────────────────────────────────────────────────────────────────────
 /** Démarre la session sécurisée et génère le token CSRF s'il est absent. */
 function csrfStart(): void {
     if (session_status() === PHP_SESSION_NONE) session_start();
@@ -266,5 +262,4 @@ function csrfVerify(): void {
     }
 }
 
-// Chargement du système de traduction (doit être après toutes les fonctions)
 require_once __DIR__ . '/lang.php';
