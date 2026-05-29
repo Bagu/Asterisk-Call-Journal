@@ -59,18 +59,16 @@ foreach ($db->query("SELECT * FROM numeros_speciaux ORDER BY categorie, numero")
 <html lang="<?= htmlspecialchars(detectLang()) ?>">
 <head>
     <meta charset="UTF-8">
-	<meta name="robots" content="noindex, nofollow">
+    <meta name="robots" content="noindex, nofollow">
     <title><?= htmlspecialchars(t('speciaux.title')) ?></title>
     <link rel="icon" type="image/png" href="./favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- theme.js avant le CSS pour éviter le flash de thème incorrect (FOUC) -->
+    <script src="theme.js"></script>
     <link rel="stylesheet" href="style.css">
     <style>
         /* Modale d'édition : largeur fixe adaptée au formulaire compact */
-        .modal  { width: 360px; }
-        /* En-tête de groupe dans le tableau (séparation par catégorie) */
-        .cat-header { background: #ecf0f1; color: #555; font-weight: 700; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
-        /* Badge de catégorie (system, local, blacklist, autre) dans le tableau */
-        .badge-cat  { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: .75rem; font-weight: 600; }
+        .modal { width: 360px; }
     </style>
 </head>
 <body>
@@ -80,6 +78,8 @@ foreach ($db->query("SELECT * FROM numeros_speciaux ORDER BY categorie, numero")
     <a href="index.php">📞 <?= htmlspecialchars(t('nav.journal')) ?></a>
     <a href="contacts.php">👥 <?= htmlspecialchars(t('nav.contacts')) ?></a>
     <?= topbarUserHtml() ?>
+    <!-- Bouton bascule thème clair/sombre -->
+    <button id="btn-theme" title="Changer de thème">🌙</button>
 </div>
 
 <?php foreach ($msg    as $m): ?><div class="alert alert-ok">✅ <?= htmlspecialchars($m) ?></div><?php endforeach; ?>
