@@ -244,10 +244,14 @@ $jsLocale  = detectLang() === 'fr' ? 'fr-FR' : 'en-US';
 <html lang="<?= htmlspecialchars(detectLang()) ?>">
 <head>
     <meta charset="UTF-8">
-	<meta name="robots" content="noindex, nofollow">
+    <meta name="robots" content="noindex, nofollow">
     <title><?= htmlspecialchars(t('index.title')) ?></title>
-    <link rel="icon" type="image/png" href="./favicon.png">
+    <link rel="icon" type="image/png" href="/favicon.png" sizes="any">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="shortcut icon" href="/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- theme.js avant le CSS pour éviter le flash de thème incorrect (FOUC) -->
+    <script src="theme.js"></script>
     <link rel="stylesheet" href="style.css">
     <style>
         /* Pleine hauteur viewport : le scroll est géré par .table-scroll, pas le body */
@@ -272,8 +276,8 @@ $jsLocale  = detectLang() === 'fr' ? 'fr-FR' : 'en-US';
 
         /* Boutons hamburger visibles uniquement sur mobile (cachés sur desktop) */
         #btn-toggle-filtres, #btn-toggle-topbar {
-            display: none; background: none; border: 1px solid #556;
-            color: #ccc; border-radius: 5px; padding: 5px 10px; cursor: pointer;
+            display: none; background: none; border: 1px solid var(--text-muted);
+            color: var(--text-topbar); border-radius: 5px; padding: 5px 10px; cursor: pointer;
             font-size: .82rem; white-space: nowrap;
         }
         #btn-toggle-topbar { font-size: 1rem; } /* icône hamburger légèrement plus grande */
@@ -282,20 +286,20 @@ $jsLocale  = detectLang() === 'fr' ? 'fr-FR' : 'en-US';
         .topbar-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 
         /* ── Filtres ── */
-        /* Barre de filtres collée sous la topbar, fond blanc, ne scroll pas */
+        /* Barre de filtres collée sous la topbar, ne scroll pas */
         .filtres-bar {
-            background: white; padding: 10px 16px; box-shadow: 0 1px 3px #0001;
+            background: var(--bg-filtres); padding: 10px 16px; box-shadow: var(--shadow-topbar);
             display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; flex-shrink: 0;
         }
         /* Masquée par défaut sur mobile (toggle JS) */
         .filtres-bar.hidden { display: none; }
-        .filtres-bar label { font-size: .8rem; color: #555; display: block; margin-bottom: 2px; }
+        .filtres-bar label { font-size: .8rem; color: var(--text-secondary); display: block; margin-bottom: 2px; }
         .filtres-bar input[type=text] { width: 155px; }
         /* Bouton Filtrer */
         .btn-filtre { padding: 6px 14px; border: none; border-radius: 5px; background: #374785; color: white; font-weight: 600; cursor: pointer; font-size: .86rem; }
         .btn-filtre:hover { background: #4a5fa8; }
         /* Bouton Reset (lien stylisé en bouton gris) */
-        .btn-reset { padding: 6px 12px; border: none; border-radius: 5px; background: #bbb; color: white; cursor: pointer; font-size: .86rem; text-decoration: none; display: inline-block; }
+        .btn-reset { padding: 6px 12px; border: none; border-radius: 5px; background: #7f8c8d; color: white; cursor: pointer; font-size: .86rem; text-decoration: none; display: inline-block; }
 
         /* ── Layout principal (scroll infini) ── */
         /* Wrapper : occupe tout l'espace restant entre topbar et bas de viewport */
@@ -306,8 +310,8 @@ $jsLocale  = detectLang() === 'fr' ? 'fr-FR' : 'en-US';
         /* En-tête de la card : info page + contrôles navigation, ne scroll pas */
         .card-header {
             flex-shrink: 0; display: flex; align-items: center; flex-wrap: wrap;
-            gap: 10px; padding: 8px 16px; border-bottom: 1px solid #eee;
-            font-size: .82rem; color: #777;
+            gap: 10px; padding: 8px 16px; border-bottom: 1px solid var(--border-table);
+            font-size: .82rem; color: var(--text-card-info);
         }
         /* Contrôles de navigation (saut page/date) poussés à droite */
         .nav-controls { display: flex; align-items: center; gap: 6px; margin-left: auto; flex-wrap: wrap; }
@@ -318,34 +322,34 @@ $jsLocale  = detectLang() === 'fr' ? 'fr-FR' : 'en-US';
         /* ── Tableau ── */
         /* En-tête de tableau fixe pendant le scroll */
         thead tr { position: sticky; top: 0; z-index: 5; }
-        /* Ligne de séparateur de jour (fond bleu foncé) */
-        .day-row td { background: #374785; color: white; font-weight: 700; font-size: .78rem; letter-spacing: .04em; padding: 5px 12px; }
+        /* Ligne de séparateur de jour */
+        .day-row td { background: var(--bg-day-row); color: white; font-weight: 700; font-size: .78rem; letter-spacing: .04em; padding: 5px 12px; }
 
         /* Couleurs directionnelles des appels */
-        .entrant   { color: #1565c0; font-weight: 600; } /* bleu : appel entrant */
-        .sortant   { color: #1b5e20; font-weight: 600; } /* vert : appel sortant */
-        /* Couleurs d'état (utilisées si besoin via classe dynamique) */
-        .ANSWERED  { color: #2e7d32; font-weight: 700; } /* vert  : répondu */
-        .NO_ANSWER { color: #c62828; }                   /* rouge : manqué  */
+        .entrant   { color: var(--color-entrant); font-weight: 600; } /* appel entrant */
+        .sortant   { color: var(--color-sortant); font-weight: 600; } /* appel sortant */
+        /* Couleurs d'état */
+        .ANSWERED  { color: var(--color-answered); font-weight: 700; } /* répondu */
+        .NO_ANSWER { color: var(--color-noanswer); }                   /* manqué  */
 
         /* Badge d'avertissement d'ambiguïté (numéro lié à plusieurs contacts) */
-        .badge-multi         { background: #fff3e0; color: #e65100; }
+        .badge-multi { background: var(--badge-multi-bg); color: var(--badge-multi-txt); }
         /* Colonnes poste et durée : pas de retour à la ligne */
         .col-poste, .col-duree { white-space: nowrap; }
-        .col-duree { color: #555; }
+        .col-duree { color: var(--text-secondary); }
 
         /* Badge numéro de téléphone cliquable (lien tel:) */
         .badge-numero { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: .82rem; font-weight: 600; text-decoration: none; }
-        .badge-numero-connu   { background: #e3f2fd; color: #1565c0; } /* bleu : numéro identifié dans les contacts */
-        .badge-numero-inconnu { background: #eceff1; color: #546e7a; } /* gris : numéro inconnu ou masqué           */
+        .badge-numero-connu   { background: var(--badge-num-connu-bg);   color: var(--badge-num-connu-txt); }
+        .badge-numero-inconnu { background: var(--badge-num-inconnu-bg); color: var(--badge-num-inconnu-txt); }
 
         /* Conteneur numéro + nom : inline sur desktop, colonne sur mobile */
         .num-cell { display: inline; }
-        /* Nom du contact affiché à côté du numéro sur desktop */
-        .nom-contact { color: #555; font-size: .82rem; margin-left: 4px; }
+        /* Nom du contact affiché à côté du numéro */
+        .nom-contact { color: var(--text-secondary); font-size: .82rem; margin-left: 4px; }
 
         /* Spinner de chargement de la page suivante (scroll infini) */
-        #scroll-loader { display: none; text-align: center; padding: 14px; color: #888; font-size: .88rem; }
+        #scroll-loader { display: none; text-align: center; padding: 14px; color: var(--text-muted); font-size: .88rem; }
 
         /* ── Bannière nouveaux appels ── */
         /* Notification fixe en haut, visible quand l'utilisateur a scrollé ou est en page 2+ */
@@ -353,7 +357,7 @@ $jsLocale  = detectLang() === 'fr' ? 'fr-FR' : 'en-US';
             display: none; position: fixed; top: 56px; left: 50%; transform: translateX(-50%);
             background: #374785; color: white; padding: 8px 22px; border-radius: 20px;
             font-size: .85rem; font-weight: 600; cursor: pointer; z-index: 40;
-            box-shadow: 0 2px 8px #0003; white-space: nowrap; border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,.3); white-space: nowrap; border: none;
         }
         #new-calls-banner:hover { background: #4a5fa8; }
 
@@ -362,7 +366,7 @@ $jsLocale  = detectLang() === 'fr' ? 'fr-FR' : 'en-US';
         #sync-status {
             display: none; position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
             padding: 8px 20px; border-radius: 20px; font-size: .85rem; font-weight: 600;
-            box-shadow: 0 2px 8px #0003; z-index: 50; white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,.3); z-index: 50; white-space: nowrap;
         }
 
         /* ── Mobile ── */
@@ -414,6 +418,8 @@ $jsLocale  = detectLang() === 'fr' ? 'fr-FR' : 'en-US';
             <a href="numeros_speciaux.php">⚙️ <?= htmlspecialchars(t('nav.speciaux')) ?></a>
         <?php endif; ?>
         <?= topbarUserHtml() ?>
+        <!-- Bouton bascule thème clair/sombre -->
+        <button id="btn-theme" title="Changer de thème">🌙</button>
     </div>
 </div>
 
@@ -445,12 +451,12 @@ $jsLocale  = detectLang() === 'fr' ? 'fr-FR' : 'en-US';
             <div class="nav-controls">
                 <label><?= htmlspecialchars(t('index.page')) ?></label>
                 <input type="number" id="input-jump-page" min="1" max="<?= $totalPages ?>" value="<?= $page ?>"
-                       style="width:65px;padding:4px 7px;border:1px solid #ccc;border-radius:5px;font-size:.82rem">
+                       style="width:65px;padding:4px 7px;border:1px solid var(--border-color);border-radius:5px;font-size:.82rem">
                 <button id="btn-jump-page"
                         style="padding:4px 10px;background:#374785;color:white;border:none;border-radius:5px;cursor:pointer">→</button>
                 <label><?= htmlspecialchars(t('index.date')) ?></label>
                 <input type="date" id="input-jump-date"
-                       style="padding:4px 7px;border:1px solid #ccc;border-radius:5px;font-size:.82rem">
+                       style="padding:4px 7px;border:1px solid var(--border-color);border-radius:5px;font-size:.82rem">
             </div>
         </div>
 
