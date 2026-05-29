@@ -134,34 +134,34 @@ if ($action === 'import_csv' && isset($_FILES['csvfile'])) {
         $db->beginTransaction();
         try {
             while (($row = fgetcsv($handle, 0, $sep, '"', "")) !== false) {
-				$nom = $idxNom !== false ? trim($row[$idxNom] ?? '') : '';
-				if ($nom === '') { $stats['lignes_ignorees']++; continue; }
+                $nom = $idxNom !== false ? trim($row[$idxNom] ?? '') : '';
+                if ($nom === '') { $stats['lignes_ignorees']++; continue; }
 
-				// Collecter les numéros valides AVANT de créer le contact
-				// pour ne pas importer de contacts fantômes sans numéro
-				$numerosValides = [];
-				foreach ([
-					[$idxMob,   'portable'],
-					[$idxPerso, 'domicile'],
-					[$idxPro,   'travail'],
-				] as [$idx, $type]) {
-					$numNorm = $idx !== false ? normaliserNumero($row[(int)$idx] ?? '') : '';
-					if ($numNorm !== '') $numerosValides[] = [$numNorm, $type];
-				}
-				if (empty($numerosValides)) { $stats['lignes_ignorees']++; continue; }
+                // Collecter les numéros valides AVANT de créer le contact
+                // pour ne pas importer de contacts fantômes sans numéro
+                $numerosValides = [];
+                foreach ([
+                    [$idxMob,   'portable'],
+                    [$idxPerso, 'domicile'],
+                    [$idxPro,   'travail'],
+                ] as [$idx, $type]) {
+                    $numNorm = $idx !== false ? normaliserNumero($row[(int)$idx] ?? '') : '';
+                    if ($numNorm !== '') $numerosValides[] = [$numNorm, $type];
+                }
+                if (empty($numerosValides)) { $stats['lignes_ignorees']++; continue; }
 
-				$contact   = trouverOuCreerContact($db, $nom);
-				$contactId = $contact['id'];
-				if ($contact['created']) $stats['contacts_crees']++;
+                $contact   = trouverOuCreerContact($db, $nom);
+                $contactId = $contact['id'];
+                if ($contact['created']) $stats['contacts_crees']++;
 
-				$anyNew = false;
-				foreach ($numerosValides as [$numNorm, $type]) {
-					$res = lierNumero($db, $contactId, $numNorm, $type);
-					if ($res === 'created')     { $stats['numeros_lies']++;    $anyNew = true; }
-					elseif ($res === 'updated') { $stats['types_mis_a_jour']++; $anyNew = true; }
-				}
-				if (!$anyNew && !$contact['created']) $stats['deja_presents']++;
-			}
+                $anyNew = false;
+                foreach ($numerosValides as [$numNorm, $type]) {
+                    $res = lierNumero($db, $contactId, $numNorm, $type);
+                    if ($res === 'created')     { $stats['numeros_lies']++;     $anyNew = true; }
+                    elseif ($res === 'updated') { $stats['types_mis_a_jour']++; $anyNew = true; }
+                }
+                if (!$anyNew && !$contact['created']) $stats['deja_presents']++;
+            }
             $db->commit();
             $importStats = $stats;
         } catch (Exception $e) {
@@ -226,64 +226,19 @@ $contacts = $stmtC->fetchAll();
 <html lang="<?= htmlspecialchars(detectLang()) ?>">
 <head>
     <meta charset="UTF-8">
-	<meta name="robots" content="noindex, nofollow">
+    <meta name="robots" content="noindex, nofollow">
     <title><?= htmlspecialchars(t('contacts.title')) ?></title>
     <link rel="icon" type="image/png" href="./favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- theme.js avant le CSS pour éviter le flash de thème incorrect (FOUC) -->
+    <script src="theme.js"></script>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Barre de filtre/recherche : disposition horizontale avec retour à la ligne */
-        .filtres { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 14px; }
-        .filtres input { width: 220px; }
-
-        /* Compteur total contacts/numéros sous la barre de recherche */
-        .info-total { font-size: .82rem; color: #777; margin-bottom: 12px; }
-
-        /* Badges colorés indiquant le type de numéro (portable, domicile, etc.) */
-        .badge-type     { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: .73rem; font-weight: 600; margin-right: 3px; }
-        .badge-portable { background: #e3f2fd; color: #1565c0; } /* bleu   : portable */
-        .badge-domicile { background: #f3e5f5; color: #6a1b9a; } /* violet : domicile */
-        .badge-travail  { background: #e8f5e9; color: #1b5e20; } /* vert   : travail  */
-        .badge-autre    { background: #fff3e0; color: #e65100; } /* orange : autre    */
-        .badge-inconnu  { background: #eceff1; color: #546e7a; } /* gris   : inconnu  */
-
-        /* Ligne d'un numéro : conteneur inline avec indicateur de couleur, sélecteur type, lien et bouton */
-        .num-row {
-            display: inline-flex; align-items: center; gap: 6px;
-            margin: 2px 0; background: #f8f9ff; border-radius: 5px; padding: 2px 6px;
-        }
-        /* Indicateur de couleur du type : petit rond coloré devant le sélecteur */
-        .dot-type     { display:inline-block; width:.55rem; height:.55rem; border-radius:50%; flex-shrink:0; }
-        .dot-portable { background:#1565c0; } /* bleu   : portable */
-        .dot-domicile { background:#6a1b9a; } /* violet : domicile */
-        .dot-travail  { background:#1b5e20; } /* vert   : travail  */
-        .dot-autre    { background:#e65100; } /* orange : autre    */
-        .dot-inconnu  { background:#90a4ae; } /* gris   : inconnu  */
-        /* Lien cliquable du numéro (protocole tel:) en police monospace */
-        .num-lien { font-family:monospace; font-size:.85rem; text-decoration:none; color:inherit; }
-        .num-lien:hover { text-decoration:underline; }
-        /* Espaces visuels non sélectionnables dans les numéros formatés xx xx xx xx xx */
-        .num-sp { user-select:none; }
-
-        /* Grille de statistiques post-import CSV (contacts créés, numéros liés, etc.) */
-        .import-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 12px; }
-        /* Carte individuelle d'une statistique d'import */
-        .stat-box { background: #f4f6ff; border: 1px solid #dde; border-radius: 8px; padding: 10px 14px; text-align: center; }
-        /* Valeur numérique mise en avant dans la carte stat */
-        .stat-box .num { font-size: 1.6rem; font-weight: 700; color: #374785; }
-        /* Libellé sous la valeur numérique */
-        .stat-box .lbl { font-size: .75rem; color: #666; margin-top: 2px; }
-
         /* Mobile < 600px : masque la colonne "Ajouté le" et empile le formulaire */
         @media (max-width: 600px) {
             th:nth-child(3), td:nth-child(3) { display: none; }
             .form-row { flex-direction: column; }
         }
-
-		/* Contrôles de pagination : alignés à gauche, espacés */
-		.pagination { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
-		/* Séparateur ellipsis entre les blocs de numéros de page */
-		.pagination-ellipsis { line-height: 1; padding: 7px 4px; color: #aaa; align-self: center; }
     </style>
 </head>
 <body>
@@ -293,6 +248,8 @@ $contacts = $stmtC->fetchAll();
     <a href="index.php">📞 <?= htmlspecialchars(t('nav.journal')) ?></a>
     <a href="numeros_speciaux.php">⚙️ <?= htmlspecialchars(t('nav.speciaux')) ?></a>
     <?= topbarUserHtml() ?>
+    <!-- Bouton bascule thème clair/sombre -->
+    <button id="btn-theme" title="Changer de thème">🌙</button>
 </div>
 
 <?php foreach ($msg    as $m): ?>
@@ -314,7 +271,7 @@ $contacts = $stmtC->fetchAll();
             'lignes_ignorees'  => 'contacts.import_ignored',
         ] as $key => $langKey): ?>
             <div class="stat-box">
-                <div class="num"><?= (int)$importStats[$key] ?></div>
+                <div class="num"><?= htmlspecialchars((string)$importStats[$key]) ?></div>
                 <div class="lbl"><?= htmlspecialchars(t($langKey)) ?></div>
             </div>
         <?php endforeach; ?>
@@ -451,7 +408,7 @@ $contacts = $stmtC->fetchAll();
     <?php endif; ?>
 
     <?php if (empty($contacts)): ?>
-        <p style="color:#aaa;text-align:center;padding:20px 0"><?= htmlspecialchars(t('contacts.none')) ?></p>
+        <p style="color:var(--text-none);text-align:center;padding:20px 0"><?= htmlspecialchars(t('contacts.none')) ?></p>
     <?php else: ?>
     <table>
         <thead>
@@ -487,7 +444,7 @@ $contacts = $stmtC->fetchAll();
                             <input type="hidden" name="action"    value="edit_numero_type">
                             <input type="hidden" name="numero_id" value="<?= (int)$n['id'] ?>">
                             <select name="type" class="select-auto-submit"
-                                    style="font-size:.73rem;padding:1px 4px;border-radius:10px;border:1px solid #ccc;">
+                                    style="font-size:.73rem;padding:1px 4px;border-radius:10px;border:1px solid var(--border-color)">
                                 <?php foreach ($types as $typ): ?>
                                     <option value="<?= $typ ?>" <?= $n['type'] === $typ ? 'selected' : '' ?>><?= htmlspecialchars(t('contacts.type.' . $typ)) ?></option>
                                 <?php endforeach; ?>
@@ -505,10 +462,10 @@ $contacts = $stmtC->fetchAll();
                     </div>
                 <?php endforeach; ?>
                 <?php if (empty($numeros)): ?>
-                    <span style="color:#bbb;font-size:.82rem"><?= htmlspecialchars(t('contacts.no_numero')) ?></span>
+                    <span style="color:var(--text-none);font-size:.82rem"><?= htmlspecialchars(t('contacts.no_numero')) ?></span>
                 <?php endif; ?>
             </td>
-            <td style="font-size:.8rem;color:#999;white-space:nowrap">
+            <td style="font-size:.8rem;color:var(--text-date);white-space:nowrap">
                 <?= htmlspecialchars(substr($contact['created_at'] ?? '', 0, 10)) ?>
             </td>
             <td style="white-space:nowrap">
@@ -589,13 +546,15 @@ function openEdit(id, nom) {
     document.getElementById('edit-nom').value        = nom;
     document.getElementById('modal-edit').classList.add('open');
 }
+
 /** Remplit et ouvre la modale d'ajout d'un numéro pour un contact. */
 function openAddNum(id, nom) {
-    document.getElementById('addnum-contact-id').value      = id;
+    document.getElementById('addnum-contact-id').value       = id;
     document.getElementById('addnum-nom-display').textContent = nom;
-    document.getElementById('addnum-numero').value          = '';
+    document.getElementById('addnum-numero').value           = '';
     document.getElementById('modal-addnum').classList.add('open');
 }
+
 /** Ferme une modale par son id. */
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
