@@ -1,87 +1,333 @@
 /* ── Reset ── */
 *, *::before, *::after { box-sizing: border-box; }
 
+/* ── Variables thème clair (défaut) ── */
+:root, [data-theme="light"] {
+    --bg-page:              #f0f2f5;   /* fond de la page */
+    --bg-card:              #ffffff;   /* fond des cards et modales */
+    --bg-topbar:            #1a1a2e;   /* fond de la topbar */
+    --bg-thead:             #1a1a2e;   /* fond de l'en-tête de tableau */
+    --bg-day-row:           #374785;   /* fond des séparateurs de jour */
+    --bg-filtres:           #ffffff;   /* fond de la barre de filtres */
+    --bg-hint:              #f9f9f9;   /* fond des blocs d'aide hint */
+    --bg-cat-header:        #ecf0f1;   /* fond des en-têtes de catégorie tableau */
+    --bg-hover-row:         #f7f9ff;   /* couleur de survol d'une ligne */
+    --bg-num-row:           #f8f9ff;   /* fond d'une ligne de numéro (contacts) */
+    --bg-stat-box:          #f4f6ff;   /* fond des cases stats import CSV */
+
+    --text-primary:         #111111;   /* texte principal */
+    --text-secondary:       #555555;   /* texte secondaire (labels, infos) */
+    --text-muted:           #888888;   /* texte atténué */
+    --text-topbar:          #eeeeee;   /* texte dans la topbar */
+    --text-thead:           #ffffff;   /* texte de l'en-tête de tableau */
+    --text-card-info:       #777777;   /* texte d'info dans card-header */
+    --text-none:            #aaaaaa;   /* texte "aucun élément" */
+    --text-date:            #999999;   /* texte des dates secondaires */
+    --text-login-title:     #1a1a2e;   /* titre de la carte de login */
+
+    --border-color:         #cccccc;   /* bordures des champs de formulaire */
+    --border-table:         #eeeeee;   /* séparateurs de lignes du tableau */
+    --border-hint:          #cccccc;   /* bordure pointillée des hints */
+    --border-stat:          #ddddee;   /* bordure des cases stats */
+
+    --btn-topbar-bg:        #374785;   /* fond des boutons dans la topbar */
+    --btn-topbar-hover:     #4a5fa8;   /* hover des boutons dans la topbar */
+
+    --badge-num-connu-bg:   #e3f2fd;   /* badge numéro identifié : fond */
+    --badge-num-connu-txt:  #1565c0;   /* badge numéro identifié : texte */
+    --badge-num-inconnu-bg: #eceff1;   /* badge numéro inconnu ou masqué : fond */
+    --badge-num-inconnu-txt:#546e7a;   /* badge numéro inconnu ou masqué : texte */
+
+    --alert-ok-bg:          #e8f5e9;   --alert-ok-txt:   #2e7d32;   --alert-ok-brd:   #a5d6a7;
+    --alert-err-bg:         #ffebee;   --alert-err-txt:  #c62828;   --alert-err-brd:  #ef9a9a;
+    --alert-warn-bg:        #fff8e1;   --alert-warn-txt: #e65100;   --alert-warn-brd: #ffcc80;
+
+    --badge-system-bg:      #d5e8fb;   --badge-system-txt:    #1565c0;
+    --badge-local-bg:       #d4efdf;   --badge-local-txt:     #1a5e30;
+    --badge-blacklist-bg:   #fde8e8;   --badge-blacklist-txt: #7b1f1f;
+    --badge-autre-bg:       #f5ecff;   --badge-autre-txt:     #4a148c;
+    --badge-multi-bg:       #fff3e0;   --badge-multi-txt:     #e65100;
+
+    --badge-portable-bg:    #e3f2fd;   --badge-portable-txt:  #1565c0;
+    --badge-domicile-bg:    #f3e5f5;   --badge-domicile-txt:  #6a1b9a;
+    --badge-travail-bg:     #e8f5e9;   --badge-travail-txt:   #1b5e20;
+    --badge-autrenum-bg:    #fff3e0;   --badge-autrenum-txt:  #e65100;
+    --badge-inconnu-bg:     #eceff1;   --badge-inconnu-txt:   #546e7a;
+
+    --badge-role-admin-bg:  #fff8e1;   --badge-role-admin-txt: #e65100;
+    --badge-role-user-bg:   #e8f5e9;   --badge-role-user-txt:  #2e7d32;
+    --badge-you-bg:         #e3f2fd;   --badge-you-txt:        #1565c0;
+
+    --login-info-bg:        #e3f2fd;   --login-info-txt: #1565c0; --login-info-brd: #90caf9;
+    --login-info-code-bg:   #d0e8f8;
+
+    --color-entrant:        #1565c0;   /* bleu  : appel entrant */
+    --color-sortant:        #1b5e20;   /* vert  : appel sortant */
+    --color-answered:       #2e7d32;   /* vert  : appel répondu */
+    --color-noanswer:       #c62828;   /* rouge : appel manqué  */
+
+    --stat-num-color:       #374785;   /* couleur du chiffre dans les cases stats */
+
+    --shadow-card:          0 1px 4px rgba(0,0,0,.07);
+    --shadow-modal:         0 2px 12px rgba(0,0,0,.13);
+    --shadow-topbar:        0 1px 3px rgba(0,0,0,.06);
+}
+
+/* ── Variables thème sombre ── */
+[data-theme="dark"] {
+    --bg-page:              #0f0f1a;
+    --bg-card:              #1e1e2e;
+    --bg-topbar:            #0d0d1a;
+    --bg-thead:             #0d0d1a;
+    --bg-day-row:           #2a3a6e;
+    --bg-filtres:           #1e1e2e;
+    --bg-hint:              #252535;
+    --bg-cat-header:        #2a2a3e;
+    --bg-hover-row:         #252538;
+    --bg-num-row:           #202032;
+    --bg-stat-box:          #1a1a2e;
+
+    --text-primary:         #e8e8f0;
+    --text-secondary:       #a0a0b8;
+    --text-muted:           #6a6a88;
+    --text-topbar:          #ccccee;
+    --text-thead:           #e0e0f0;
+    --text-card-info:       #8888aa;
+    --text-none:            #5a5a7a;
+    --text-date:            #6a6a88;
+    --text-login-title:     #b0b0d0;
+
+    --border-color:         #3a3a55;
+    --border-table:         #2a2a42;
+    --border-hint:          #3a3a55;
+    --border-stat:          #2e2e4a;
+
+    --btn-topbar-bg:        #2a3a6e;
+    --btn-topbar-hover:     #3a4f8e;
+
+    --badge-num-connu-bg:   #1a2a4a;   --badge-num-connu-txt:  #7eb8f7;
+    --badge-num-inconnu-bg: #252535;   --badge-num-inconnu-txt:#9aaabb;
+
+    --alert-ok-bg:          #1a2e1a;   --alert-ok-txt:   #66bb6a;   --alert-ok-brd:   #2e5e30;
+    --alert-err-bg:         #2e1a1a;   --alert-err-txt:  #ef5350;   --alert-err-brd:  #5e2e2e;
+    --alert-warn-bg:        #2e2a14;   --alert-warn-txt: #ffa040;   --alert-warn-brd: #5e4e1a;
+
+    --badge-system-bg:      #1a2a4a;   --badge-system-txt:    #7eb8f7;
+    --badge-local-bg:       #1a2e1a;   --badge-local-txt:     #66bb6a;
+    --badge-blacklist-bg:   #2e1a1a;   --badge-blacklist-txt: #ef5350;
+    --badge-autre-bg:       #2a1a3e;   --badge-autre-txt:     #ce93d8;
+    --badge-multi-bg:       #2e2010;   --badge-multi-txt:     #ffa040;
+
+    --badge-portable-bg:    #1a2a4a;   --badge-portable-txt:  #7eb8f7;
+    --badge-domicile-bg:    #2a1a3e;   --badge-domicile-txt:  #ce93d8;
+    --badge-travail-bg:     #1a2e1a;   --badge-travail-txt:   #66bb6a;
+    --badge-autrenum-bg:    #2e2010;   --badge-autrenum-txt:  #ffa040;
+    --badge-inconnu-bg:     #252535;   --badge-inconnu-txt:   #9aaabb;
+
+    --badge-role-admin-bg:  #2e2010;   --badge-role-admin-txt: #ffa040;
+    --badge-role-user-bg:   #1a2e1a;   --badge-role-user-txt:  #66bb6a;
+    --badge-you-bg:         #1a2a4a;   --badge-you-txt:        #7eb8f7;
+
+    --login-info-bg:        #1a2a4a;   --login-info-txt: #7eb8f7; --login-info-brd: #2a4a7a;
+    --login-info-code-bg:   #152038;
+
+    --color-entrant:        #7eb8f7;
+    --color-sortant:        #66bb6a;
+    --color-answered:       #66bb6a;
+    --color-noanswer:       #ef5350;
+
+    --stat-num-color:       #7eb8f7;
+
+    --shadow-card:          0 1px 6px rgba(0,0,0,.4);
+    --shadow-modal:         0 2px 16px rgba(0,0,0,.6);
+    --shadow-topbar:        0 1px 4px rgba(0,0,0,.4);
+}
+
+/* ── Base body ── */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #f0f2f5;
+    background: var(--bg-page);
+    color: var(--text-primary);
     margin: 0;
 }
 
 /* ── Topbar ── */
+/* Barre de navigation principale, fixée en haut sur toutes les pages */
 .topbar {
     display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-    background: #1a1a2e; color: #eee;
+    background: var(--bg-topbar); color: var(--text-topbar);
     padding: 12px 16px;
-    position: sticky; top: 0; z-index: 10; flex-shrink: 0; /* Fixe en haut sur toutes les pages, mobile inclus */
+    position: sticky; top: 0; z-index: 10; flex-shrink: 0;
 }
 .topbar h2 { margin: 0; flex: 1; font-size: 1.2rem; white-space: nowrap; }
+
+/* Liens de navigation dans la topbar */
 .topbar a {
-    color: #fff; background: #374785; padding: 7px 14px;
+    color: #fff; background: var(--btn-topbar-bg); padding: 7px 14px;
     border-radius: 5px; text-decoration: none; font-size: .85rem; white-space: nowrap;
 }
-.topbar a:hover { background: #4a5fa8; }
+.topbar a:hover { background: var(--btn-topbar-hover); }
+
+/* Bouton bascule thème clair/sombre dans la topbar */
+#btn-theme {
+    background: none; border: 1px solid var(--text-muted);
+    color: var(--text-topbar); border-radius: 5px;
+    padding: 5px 10px; cursor: pointer; font-size: .85rem;
+    white-space: nowrap; line-height: 1; transition: border-color .15s;
+}
+#btn-theme:hover { border-color: var(--text-topbar); }
 
 /* ── Cards ── */
-.card { background: white; border-radius: 8px; padding: 18px; box-shadow: 0 1px 4px #0001; margin-bottom: 16px; }
+/* Conteneur de section avec ombre légère */
+.card { background: var(--bg-card); border-radius: 8px; padding: 18px; box-shadow: var(--shadow-card); margin-bottom: 16px; }
 .card h3 { margin: 0 0 14px; font-size: 1rem; }
 
 /* ── Alertes ── */
+/* Bandeaux de messages système (succès, erreur, avertissement) */
 .alert { padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: .88rem; }
-.alert-ok   { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
-.alert-err  { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
-.alert-warn { background: #fff8e1; color: #e65100; border: 1px solid #ffcc80; font-size: .82rem; margin-top: 4px; }
+.alert-ok   { background: var(--alert-ok-bg);   color: var(--alert-ok-txt);   border: 1px solid var(--alert-ok-brd); }
+.alert-err  { background: var(--alert-err-bg);  color: var(--alert-err-txt);  border: 1px solid var(--alert-err-brd); }
+.alert-warn { background: var(--alert-warn-bg); color: var(--alert-warn-txt); border: 1px solid var(--alert-warn-brd); font-size: .82rem; margin-top: 4px; }
 
 /* ── Formulaires ── */
-label.lbl { display: block; font-size: .83rem; color: #555; margin-bottom: 3px; }
+/* Label au-dessus d'un champ */
+label.lbl { display: block; font-size: .83rem; color: var(--text-secondary); margin-bottom: 3px; }
+
 /* Champs de saisie et listes déroulantes : style unifié (password inclus) */
 input[type=text], input[type=password], input[type=file],
 input[type=number], input[type=date], select {
-    padding: 7px 10px; border: 1px solid #ccc; border-radius: 5px;
+    padding: 7px 10px; border: 1px solid var(--border-color); border-radius: 5px;
     font-size: .9rem; max-width: 100%;
+    background: var(--bg-card); color: var(--text-primary);
 }
+/* Ligne de formulaire horizontale avec retour à la ligne sur mobile */
 .form-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
 
 /* ── Boutons ── */
+/* Base commune à tous les boutons */
 .btn { padding: 7px 14px; border: none; border-radius: 5px; cursor: pointer; font-size: .85rem; color: white; font-weight: 600; }
+/* Couleurs sémantiques — fixes, indépendantes du thème (contraste suffisant sur fond clair ou sombre) */
 .btn-blue   { background: #374785; } .btn-blue:hover   { background: #4a5fa8; }
 .btn-green  { background: #27ae60; } .btn-green:hover  { background: #1e8449; }
-.btn-red    { background: #e74c3c; font-size: .78rem; padding: 4px 9px; } .btn-red:hover  { background: #f85d4d; }
-.btn-orange { background: #e67e22; font-size: .78rem; padding: 4px 9px; } .btn-orange:hover  { background: #f78f33; }
-.btn-gray   { background: #bbb; } .btn-gray:hover  { background: #ccc; }
+.btn-red    { background: #e74c3c; font-size: .78rem; padding: 4px 9px; } .btn-red:hover   { background: #f85d4d; }
+.btn-orange { background: #e67e22; font-size: .78rem; padding: 4px 9px; } .btn-orange:hover{ background: #f78f33; }
+.btn-gray   { background: #7f8c8d; } .btn-gray:hover   { background: #95a5a6; }
 
 /* ── Tableaux ── */
 table { width: 100%; border-collapse: collapse; font-size: .87rem; }
-thead tr { background: #1a1a2e; color: white; }
-th, td { padding: 9px 12px; border-bottom: 1px solid #eee; vertical-align: middle; }
-tbody tr:hover { background: #f7f9ff; }
+/* En-tête du tableau : fond sombre, texte blanc */
+thead tr { background: var(--bg-thead); color: var(--text-thead); }
+/* Cellules avec séparateur bas */
+th, td { padding: 9px 12px; border-bottom: 1px solid var(--border-table); vertical-align: middle; }
+/* Survol d'une ligne */
+tbody tr:hover { background: var(--bg-hover-row); }
 
-/* ── Badges catégorie (partagés : index + numéros spéciaux) ── */
+/* ── Badges catégorie ── */
+/* Partagés entre l'index et la page des numéros spéciaux */
 .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: .73rem; font-weight: 600; }
-.badge-cat-system    { background: #d5e8fb; color: #1565c0; }
-.badge-cat-local     { background: #d4efdf; color: #1a5e30; }
-.badge-cat-blacklist { background: #fde8e8; color: #7b1f1f; }
-.badge-cat-autre     { background: #f5ecff; color: #4a148c; }
+.badge-cat-system    { background: var(--badge-system-bg);    color: var(--badge-system-txt); }
+.badge-cat-local     { background: var(--badge-local-bg);     color: var(--badge-local-txt); }
+.badge-cat-blacklist { background: var(--badge-blacklist-bg); color: var(--badge-blacklist-txt); }
+.badge-cat-autre     { background: var(--badge-autre-bg);     color: var(--badge-autre-txt); }
+
+/* ── Badges type de numéro (page contacts) ── */
+/* Indicateur coloré du type de numéro de téléphone */
+.badge-type     { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: .73rem; font-weight: 600; margin-right: 3px; }
+.badge-portable { background: var(--badge-portable-bg); color: var(--badge-portable-txt); }
+.badge-domicile { background: var(--badge-domicile-bg); color: var(--badge-domicile-txt); }
+.badge-travail  { background: var(--badge-travail-bg);  color: var(--badge-travail-txt); }
+.badge-autre    { background: var(--badge-autrenum-bg); color: var(--badge-autrenum-txt); }
+.badge-inconnu  { background: var(--badge-inconnu-bg);  color: var(--badge-inconnu-txt); }
+
+/* ── Badges rôle utilisateur (page admin_users) ── */
+.role-admin { background: var(--badge-role-admin-bg); color: var(--badge-role-admin-txt); font-weight: 700; }
+.role-user  { background: var(--badge-role-user-bg);  color: var(--badge-role-user-txt); }
+/* Badge "vous" sur la ligne du compte connecté */
+.badge-you  { background: var(--badge-you-bg); color: var(--badge-you-txt); font-size: .72rem; padding: 1px 7px; border-radius: 10px; }
 
 /* ── Modales ── */
+/* Fond semi-transparent couvrant tout le viewport */
 .modal-overlay {
     display: none; position: fixed; inset: 0;
     background: rgba(0,0,0,.5); z-index: 100;
     align-items: center; justify-content: center;
 }
 .modal-overlay.open { display: flex; }
+/* Boîte de la modale */
 .modal {
-    background: white; border-radius: 10px; padding: 24px;
+    background: var(--bg-card); border-radius: 10px; padding: 24px;
     width: 420px; max-width: 95vw; max-height: 90vh; overflow-y: auto;
+    color: var(--text-primary); box-shadow: var(--shadow-modal);
 }
 .modal h4 { margin: 0 0 14px; }
+/* Boutons d'action alignés à droite */
 .modal-actions { display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end; }
 .modal label.lbl { margin-top: 10px; }
 
 /* ── Sections dépliables ── */
 details summary { cursor: pointer; font-weight: 600; font-size: .9rem; padding: 4px 0; user-select: none; }
 details[open] summary { margin-bottom: 12px; }
+/* Bloc d'aide affiché dans un details ouvert */
 details .hint {
-    font-size: .8rem; color: #888; background: #f9f9f9;
-    border: 1px dashed #ccc; border-radius: 5px; padding: 8px 12px;
+    font-size: .8rem; color: var(--text-muted); background: var(--bg-hint);
+    border: 1px dashed var(--border-hint); border-radius: 5px; padding: 8px 12px;
     margin-bottom: 12px; line-height: 1.6;
 }
+
+/* ── Page contacts : ligne d'un numéro ── */
+/* Conteneur inline d'un numéro (indicateur coloré + sélecteur type + lien + bouton) */
+.num-row {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin: 2px 0; background: var(--bg-num-row); border-radius: 5px; padding: 2px 6px;
+}
+
+/* Petit rond coloré indiquant le type de numéro */
+.dot-type     { display: inline-block; width: .55rem; height: .55rem; border-radius: 50%; flex-shrink: 0; }
+.dot-portable { background: #1565c0; }
+.dot-domicile { background: #6a1b9a; }
+.dot-travail  { background: #1b5e20; }
+.dot-autre    { background: #e65100; }
+.dot-inconnu  { background: #90a4ae; }
+
+/* Lien cliquable du numéro (protocole tel:) en monospace */
+.num-lien { font-family: monospace; font-size: .85rem; text-decoration: none; color: inherit; }
+.num-lien:hover { text-decoration: underline; }
+/* Espaces non sélectionnables dans le formatage xx xx xx xx xx */
+.num-sp { user-select: none; }
+
+/* ── Page contacts : statistiques d'import CSV ── */
+/* Grille de cases stat après un import */
+.import-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 12px; }
+/* Case individuelle */
+.stat-box { background: var(--bg-stat-box); border: 1px solid var(--border-stat); border-radius: 8px; padding: 10px 14px; text-align: center; }
+/* Valeur numérique mise en avant */
+.stat-box .num { font-size: 1.6rem; font-weight: 700; color: var(--stat-num-color); }
+/* Libellé sous la valeur */
+.stat-box .lbl { font-size: .75rem; color: var(--text-muted); margin-top: 2px; }
+
+/* ── Page contacts : pagination ── */
+.pagination { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+/* Ellipsis entre les blocs de numéros de page */
+.pagination-ellipsis { line-height: 1; padding: 7px 4px; color: var(--text-muted); align-self: center; }
+
+/* ── Page contacts : barre de filtre ── */
+.filtres { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 14px; }
+.filtres input { width: 220px; }
+/* Compteur contacts/numéros */
+.info-total { font-size: .82rem; color: var(--text-card-info); margin-bottom: 12px; }
+
+/* ── Page admin_users : colonne date ── */
+/* Dates de création/connexion : police réduite, pas de retour à la ligne */
+.col-date { font-size: .8rem; color: var(--text-date); white-space: nowrap; }
+
+/* ── Page numeros_speciaux : en-tête de groupe ── */
+/* Ligne séparatrice colorée entre catégories de numéros spéciaux */
+.cat-header { background: var(--bg-cat-header); color: var(--text-secondary); font-weight: 700; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
+/* Badge de catégorie dans le tableau des numéros spéciaux */
+.badge-cat { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: .75rem; font-weight: 600; }
+
+/* ── Page login ── */
+/* Bloc d'information d'amorçage (aucun utilisateur configuré) */
+.login-info { background: var(--login-info-bg); color: var(--login-info-txt); border: 1px solid var(--login-info-brd); border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; font-size: .85rem; line-height: 1.6; }
+/* Code inline dans la carte login */
+.login-info code { background: var(--login-info-code-bg); padding: 1px 5px; border-radius: 3px; font-size: .82rem; }
