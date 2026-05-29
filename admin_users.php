@@ -124,19 +124,14 @@ $currentUserId = (int)($_SESSION['user_id'] ?? 0);
 <html lang="<?= htmlspecialchars(detectLang()) ?>">
 <head>
     <meta charset="UTF-8">
-	<meta name="robots" content="noindex, nofollow">
+    <meta name="robots" content="noindex, nofollow">
     <title><?= htmlspecialchars(t('users.title')) ?></title>
     <link rel="icon" type="image/png" href="./favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- theme.js avant le CSS pour éviter le flash de thème incorrect (FOUC) -->
+    <script src="theme.js"></script>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Badge de rôle coloré dans le tableau */
-        .role-admin { background: #fff8e1; color: #e65100; font-weight: 700; }
-        .role-user  { background: #e8f5e9; color: #2e7d32; }
-        /* Colonne date : police réduite et sans retour à la ligne */
-        .col-date { font-size: .8rem; color: #999; white-space: nowrap; }
-        /* Indicateur "vous" sur la ligne du compte connecté */
-        .badge-you { background: #e3f2fd; color: #1565c0; font-size: .72rem; padding: 1px 7px; border-radius: 10px; }
         /* Masque les colonnes secondaires sur mobile */
         @media (max-width: 600px) {
             th:nth-child(3), td:nth-child(3),
@@ -152,6 +147,8 @@ $currentUserId = (int)($_SESSION['user_id'] ?? 0);
     <a href="contacts.php">👥 <?= htmlspecialchars(t('nav.contacts')) ?></a>
     <a href="numeros_speciaux.php">⚙️ <?= htmlspecialchars(t('nav.speciaux')) ?></a>
     <?= topbarUserHtml() ?>
+    <!-- Bouton bascule thème clair/sombre -->
+    <button id="btn-theme" title="Changer de thème">🌙</button>
 </div>
 
 <?php foreach ($msg    as $m): ?>
@@ -178,7 +175,7 @@ $currentUserId = (int)($_SESSION['user_id'] ?? 0);
                 <div>
                     <label class="lbl">
                         <?= htmlspecialchars(t('users.password')) ?>
-                        <span style="color:#aaa;font-size:.75rem"><?= htmlspecialchars(t('users.password_hint')) ?></span>
+                        <span style="color:var(--text-muted);font-size:.75rem"><?= htmlspecialchars(t('users.password_hint')) ?></span>
                     </label>
                     <input type="password" name="password" style="width:200px"
                            autocomplete="new-password" required>
@@ -200,7 +197,7 @@ $currentUserId = (int)($_SESSION['user_id'] ?? 0);
 <div class="card">
     <h3>📋 <?= htmlspecialchars(t('users.list', ['n' => count($users)])) ?></h3>
     <?php if (empty($users)): ?>
-        <p style="color:#aaa;text-align:center;padding:20px 0"><?= htmlspecialchars(t('users.none')) ?></p>
+        <p style="color:var(--text-none);text-align:center;padding:20px 0"><?= htmlspecialchars(t('users.none')) ?></p>
     <?php else: ?>
     <table>
         <thead>
@@ -232,7 +229,7 @@ $currentUserId = (int)($_SESSION['user_id'] ?? 0);
             <td class="col-date">
                 <?= $u['last_login']
                     ? htmlspecialchars(substr($u['last_login'], 0, 16))
-                    : '<span style="color:#ccc">' . htmlspecialchars(t('users.never')) . '</span>' ?>
+                    : '<span style="color:var(--text-none)">' . htmlspecialchars(t('users.never')) . '</span>' ?>
             </td>
             <td style="white-space:nowrap">
                 <!-- Bouton réinitialiser le mot de passe (data-* lus par le JS noncé) -->
@@ -247,7 +244,7 @@ $currentUserId = (int)($_SESSION['user_id'] ?? 0);
                     <input type="hidden" name="action"  value="change_role">
                     <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
                     <select name="role" class="select-auto-submit"
-                            style="font-size:.8rem;padding:3px 6px;border-radius:5px;border:1px solid #ccc"
+                            style="font-size:.8rem;padding:3px 6px;border-radius:5px;border:1px solid var(--border-color)"
                             <?= $isMe ? 'disabled' : '' ?>>
                         <option value="user"  <?= $u['role'] === 'user'  ? 'selected' : '' ?>><?= htmlspecialchars(t('users.role_short_user')) ?></option>
                         <option value="admin" <?= $u['role'] === 'admin' ? 'selected' : '' ?>><?= htmlspecialchars(t('users.role_short_admin')) ?></option>
@@ -255,7 +252,7 @@ $currentUserId = (int)($_SESSION['user_id'] ?? 0);
                 </form>
                 <!-- Suppression (désactivée pour son propre compte) -->
                 <?php if (!$isMe): ?>
-               <form method="post" class="form-confirm" style="display:inline"
+                <form method="post" class="form-confirm" style="display:inline"
                       data-confirm="<?= htmlspecialchars(t('users.delete_confirm', ['name' => $u['username']])) ?>">
                     <?= csrfField() ?>
                     <input type="hidden" name="action"  value="delete_user">
@@ -284,7 +281,7 @@ $currentUserId = (int)($_SESSION['user_id'] ?? 0);
             <input type="hidden" name="user_id" id="reset-pwd-id">
             <label class="lbl">
                 <?= htmlspecialchars(t('users.modal_pwd_label')) ?>
-                <span style="color:#aaa;font-size:.75rem"><?= htmlspecialchars(t('users.password_hint')) ?></span>
+                <span style="color:var(--text-muted);font-size:.75rem"><?= htmlspecialchars(t('users.password_hint')) ?></span>
             </label>
             <input type="password" name="password" id="reset-pwd-input"
                    style="width:100%" autocomplete="new-password" required>
@@ -301,11 +298,12 @@ $currentUserId = (int)($_SESSION['user_id'] ?? 0);
 <script nonce="<?= htmlspecialchars(cspNonce()) ?>">
 /** Ouvre la modale de réinitialisation de mot de passe pour l'utilisateur donné. */
 function openResetPwd(id, username) {
-    document.getElementById('reset-pwd-id').value              = id;
-    document.getElementById('reset-pwd-username').textContent  = username;
-    document.getElementById('reset-pwd-input').value           = '';
+    document.getElementById('reset-pwd-id').value             = id;
+    document.getElementById('reset-pwd-username').textContent = username;
+    document.getElementById('reset-pwd-input').value          = '';
     document.getElementById('modal-reset-pwd').classList.add('open');
 }
+
 /** Ferme une modale par son id. */
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
