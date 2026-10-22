@@ -26,3 +26,6 @@
 # Bloque l'accès web au dossier locales/ (fichiers de traduction PHP).
 RewriteEngine On
 RewriteRule ^locales(/|$) - [F,L]
+
+# Bloque l'accès web au dossier sessions/ (fichiers de session PHP).
+RewriteRule ^sessions(/|$) - [F,L]

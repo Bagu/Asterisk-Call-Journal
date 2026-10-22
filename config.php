@@ -14,6 +14,16 @@ define('SESSION_LIFETIME', 60 * 60 * 24 * 30);
 ini_set('session.cookie_secure',   $_isHttps ? 1 : 0);
 ini_set('session.gc_maxlifetime',  SESSION_LIFETIME);
 ini_set('session.use_strict_mode', 1);
+// Dossier de sessions propre à l'application : dans le dossier commun du serveur, le
+// nettoyage des autres sites efface les sessions selon leur durée, pas SESSION_LIFETIME.
+$_sessionDir = __DIR__ . '/sessions';
+if (!is_dir($_sessionDir)) @mkdir($_sessionDir, 0700);
+if (is_dir($_sessionDir) && is_writable($_sessionDir)) {
+    ini_set('session.save_path', $_sessionDir);
+} else {
+    error_log('appels : dossier de sessions inutilisable : ' . $_sessionDir);
+}
+unset($_sessionDir);
 session_set_cookie_params([
     'lifetime' => SESSION_LIFETIME,
     'path'     => '/', 'domain'  => '',

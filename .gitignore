@@ -22,3 +22,6 @@ venv/
 
 # Logs
 *.log
+
+# Fichiers de session PHP
+sessions/sess_*
