@@ -174,7 +174,7 @@ return [
     'speciaux.num_label'        => 'Numéro / Extension *',
     'speciaux.num_placeholder'  => 'ex: 201',
     'speciaux.lib_label'        => 'Libellé *',
-    'speciaux.lib_placeholder'  => 'ex: PC',
+    'speciaux.lib_placeholder'  => 'ex: Softphone',
     'speciaux.cat_label'        => 'Catégorie',
     'speciaux.add_btn'          => 'Ajouter',
     'speciaux.list'             => 'Liste des numéros spéciaux',

@@ -79,7 +79,7 @@ The sync script strips the leading `;` and, if `dst == 's'`, replaces it with th
 
 ### 6. Special numbers (handled by the web UI)
 
-Special numbers are stored in the `numeros_speciaux` SQLite table. Default entries are created automatically on first run (`config.php` → `initDB()`):
+Special numbers are stored in the `numeros_speciaux` SQLite table. Default entries are created automatically on first run (`config.php` → `initDB()`). They come from `numeros_speciaux.local.php`, or from `numeros_speciaux.example.php` if that file doesn't exist. Copy the example to `numeros_speciaux.local.php` (ignored by git) and put your own extensions and codes in it. The example values:
 
 | Number | Label | Category |
 |---|---|---|
@@ -87,10 +87,10 @@ Special numbers are stored in the `numeros_speciaux` SQLite table. Default entri
 | `666` | Blacklist the last caller | `blacklist` |
 | `667` | Blacklist a number entered on the keypad | `blacklist` |
 | `999` | Remove a number from the blacklist | `blacklist` |
-| `201` | Internal extension — Softphone | `local` |
-| `202` | Internal extension — Office PC | `local` |
-| `203` | Internal extension — Smartphone | `local` |
-| `204` | Internal extension — DECT base station | `local` |
+| `201` | Internal extension: Softphone | `local` |
+| `202` | Internal extension: PC | `local` |
+| `203` | Internal extension: Smartphone | `local` |
+| `204` | Internal extension: DECT base station | `local` |
 
 Admins can add/edit/remove entries via `numeros_speciaux.php`. Valid characters for a special number: digits, `*`, `#`, and lowercase `s`.
 
@@ -103,7 +103,7 @@ Both prefixes must be implemented in your Asterisk dialplan. The web UI only dec
 
 ### 7. Internal extensions
 
-Internal extensions are `201`, `202`, `203`, `204`. They are recognized as local postes (badge category `local`) and used by the UI to determine call direction: a call is **outbound** when `src` length ≤ 3 characters (i.e. a short internal extension).
+Internal extensions are the `local` entries of that list (`201` to `204` in the example). They are recognized as local postes (badge category `local`) and used by the UI to determine call direction: a call is **outbound** when `src` length ≤ 3 characters (i.e. a short internal extension).
 
 ### 8. SFTP access
 
@@ -203,7 +203,7 @@ Le script Python retire le `;` initial et, si `dst == 's'`, remplace `dst` par l
 
 ### 6. Numéros spéciaux (gérés par l'interface web)
 
-Les numéros spéciaux sont stockés dans la table SQLite `numeros_speciaux`. Les entrées par défaut sont créées automatiquement au premier lancement (`config.php` → `initDB()`) :
+Les numéros spéciaux sont stockés dans la table SQLite `numeros_speciaux`. Les entrées par défaut sont créées automatiquement au premier lancement (`config.php` → `initDB()`). Elles viennent de `numeros_speciaux.local.php`, ou de `numeros_speciaux.example.php` si ce fichier n'existe pas. Copiez l'exemple en `numeros_speciaux.local.php` (ignoré par git) et mettez-y vos propres postes et codes. Les valeurs d'exemple :
 
 | Numéro | Libellé | Catégorie |
 |---|---|---|
@@ -211,10 +211,10 @@ Les numéros spéciaux sont stockés dans la table SQLite `numeros_speciaux`. Le
 | `666` | Blacklister le dernier appelant | `blacklist` |
 | `667` | Blacklister un numéro saisi au clavier | `blacklist` |
 | `999` | Retirer un numéro de la blacklist | `blacklist` |
-| `201` | Poste interne — Softphone | `local` |
-| `202` | Poste interne — PC | `local` |
-| `203` | Poste interne — Smartphone | `local` |
-| `204` | Poste interne — Base DECT | `local` |
+| `201` | Poste interne : Softphone | `local` |
+| `202` | Poste interne : PC | `local` |
+| `203` | Poste interne : Smartphone | `local` |
+| `204` | Poste interne : Base DECT | `local` |
 
 Les administrateurs peuvent ajouter/modifier/supprimer des entrées via `numeros_speciaux.php`. Caractères valides pour un numéro spécial : chiffres, `*`, `#`, et `s` minuscule.
 
@@ -227,7 +227,7 @@ Ces deux préfixes doivent être implémentés dans votre dialplan Asterisk. L'U
 
 ### 7. Postes internes
 
-Les postes internes sont `201`, `202`, `203`, `204`. Ils sont reconnus comme locaux (catégorie `local`) et servent à déterminer le sens de l'appel : un appel est **sortant** si `src` fait ≤ 3 caractères (donc une extension courte interne).
+Les postes internes sont les entrées `local` de cette liste (`201` à `204` dans l'exemple). Ils sont reconnus comme locaux (catégorie `local`) et servent à déterminer le sens de l'appel : un appel est **sortant** si `src` fait ≤ 3 caractères (donc une extension courte interne).
 
 ### 8. Accès SFTP
 

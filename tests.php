@@ -67,18 +67,18 @@ function makeTestDB(): PDO {
 // ═════════════════════════════════════════════════════════════════════════════
 
 section('normaliserNumero()');
-expect('Numéro standard 10 chiffres',  normaliserNumero('0612345678'),        '612345678');
-expect('+33 → 0',                      normaliserNumero('+33612345678'),       '612345678');
-expect('0033 → 0',                     normaliserNumero('0033612345678'),      '612345678');
-expect('+33 avec espaces',             normaliserNumero('+33 6 12 34 56 78'), '612345678');
+expect('Numéro standard 10 chiffres',  normaliserNumero('0639980001'),        '639980001');
+expect('+33 → 0',                      normaliserNumero('+33639980001'),       '639980001');
+expect('0033 → 0',                     normaliserNumero('0033639980001'),      '639980001');
+expect('+33 avec espaces',             normaliserNumero('+33 6 39 98 00 01'), '639980001');
 expect('0033 long (>9 chiffres)',       normaliserNumero('0033639980002'),     '639980002');
-expect('Espaces ignorés',              normaliserNumero(' 06 12 34 56 78 '),  '612345678');
-expect('Tirets ignorés',               normaliserNumero('06-12-34-56-78'),    '612345678');
-expect('Déjà normalisé (9 chiffres)',  normaliserNumero('612345678'),         '612345678');
+expect('Espaces ignorés',              normaliserNumero(' 06 39 98 00 01 '),  '639980001');
+expect('Tirets ignorés',               normaliserNumero('06-39-98-00-01'),    '639980001');
+expect('Déjà normalisé (9 chiffres)',  normaliserNumero('639980001'),         '639980001');
 expect('Extension courte',             normaliserNumero('201'),               '201');
 expect('Chaîne vide → vide',           normaliserNumero(''),                  '');
 expect('Lettres seules → vide',        normaliserNumero('abc'),               '');
-expect('Numéro int. long (> 9)',       normaliserNumero('+33 1 23 45 67 89'), '123456789');
+expect('Numéro int. long (> 9)',       normaliserNumero('+33 1 99 00 12 34'), '199001234');
 expect('Zéros uniquement',             normaliserNumero('000000000'),         '000000000');
 expect('1 seul chiffre',               normaliserNumero('5'),                 '5');
 expect('Répondeur **1 → tel quel',     normaliserNumero('**1'),               '**1');
@@ -90,9 +90,11 @@ expect('Mot contenant s → vide',       normaliserNumero('assistance'),        
 
 section('getNumeroSpecial()');
 $db = makeTestDB();
-expect('Extension locale connue',      getNumeroSpecial($db, '201'),         'Softphone');
+$premier = [];
+foreach (numerosSpeciauxParDefaut() as [$num, $label, $cat]) $premier[$cat] ??= [$num, $label];
+expect('Extension locale connue',      getNumeroSpecial($db, $premier['local'][0]),     $premier['local'][1]);
 expect('Code étoile (**1)',            getNumeroSpecial($db, '**1'),         'Répondeur');
-expect('999 (retrait blacklist)',       getNumeroSpecial($db, '999'),         'Retrait blacklist');
+expect('Code blacklist connu',         getNumeroSpecial($db, $premier['blacklist'][0]), $premier['blacklist'][1]);
 expect('Inconnu → null',               getNumeroSpecial($db, '999999'),      null);
 expect('Chaîne vide → null',           getNumeroSpecial($db, ''),            null);
 expect('Espaces → null (invalide)',     getNumeroSpecial($db, '1 2 3'),       null);
@@ -102,7 +104,7 @@ expect("Extension alpha 's' reconnue",     getNumeroSpecial($db, 's'),   'Contex
 expect("Extension alpha 'S' (casse diff)", getNumeroSpecial($db, 'S'),   null);
 expect("Lettres invalides (espace)",       getNumeroSpecial($db, 's 1'), null);
 expect("Lettre non autorisée 'a' → null",      getNumeroSpecial($db, 'a'),            null);
-expect("Caractère '+' non autorisé → null",     getNumeroSpecial($db, '+33612345678'), null);
+expect("Caractère '+' non autorisé → null",     getNumeroSpecial($db, '+33639980001'), null);
 expect("Préfixe '##201' → redirection directe", getNumeroSpecial($db, '##201'),        'Redirection → 201');
 expect("Préfixe '#*203' → transfert",           getNumeroSpecial($db, '#*203'),         'Transfert → 203');
 expect("'##' seul sans extension → null",       getNumeroSpecial($db, '##'),            null);
@@ -121,7 +123,7 @@ expect('##202 sortant : catégorie system',       $infOut['numSpecial']['categor
 expect('#*203 entrant : numSpecial non null',    $infIn['numSpecial']  !== null,                                 true);
 expect('#*203 entrant : label transfert',        $infIn['numSpecial']['label'],                                  t('index.transfert', ['ext' => '203']));
 expect('#*203 entrant : catégorie system',       $infIn['numSpecial']['categorie'],                              'system');
-expect('Numéro ordinaire : numSpecial null',     infosLigne(['src'=>'612345678','dst'=>'201','duree'=>10,'etat'=>'ANSWERED','clid'=>'','uniqueid'=>'u3','date_appel'=>'2024-01-01 10:02:00'], [], [])['numSpecial'], null);
+expect('Numéro ordinaire : numSpecial null',     infosLigne(['src'=>'639980001','dst'=>'201','duree'=>10,'etat'=>'ANSWERED','clid'=>'','uniqueid'=>'u3','date_appel'=>'2024-01-01 10:02:00'], [], [])['numSpecial'], null);
 expect('0033 entrant : affiché 0639980002',      infosLigne(['src'=>'0033639980002','dst'=>'201','duree'=>174,'etat'=>'ANSWERED','clid'=>'','uniqueid'=>'u4','date_appel'=>'2026-04-07 14:21:40'], [], [])['numExterne'],
     '0639980002');
 expect('+33 entrant : affiché 0639980003',       infosLigne(['src'=>'+33639980003','dst'=>'201','duree'=>241,'etat'=>'ANSWERED','clid'=>'','uniqueid'=>'u5','date_appel'=>'2026-04-07 15:17:34'], [], [])['numExterne'],
@@ -140,16 +142,16 @@ section('chercherContactParNumero()');
 $db = makeTestDB();
 $db->exec("INSERT INTO contacts (nom) VALUES ('Alice')"); $aliceId = (int)$db->lastInsertId();
 $db->exec("INSERT INTO contacts (nom) VALUES ('Bob')");   $bobId   = (int)$db->lastInsertId();
-$db->exec("INSERT INTO numeros (numero, contact_id, type) VALUES ('612000001', $aliceId, 'portable')");
-$db->exec("INSERT INTO numeros (numero, contact_id, type) VALUES ('612000002', $bobId,   'domicile')");
-$db->exec("INSERT INTO numeros (numero, contact_id, type) VALUES ('612000003', $aliceId, 'travail')");
-$db->exec("INSERT INTO numeros (numero, contact_id, type) VALUES ('612000003', $bobId,   'travail')");
-$res = chercherContactParNumero($db, '612000001');
+$db->exec("INSERT INTO numeros (numero, contact_id, type) VALUES ('639981001', $aliceId, 'portable')");
+$db->exec("INSERT INTO numeros (numero, contact_id, type) VALUES ('639981002', $bobId,   'domicile')");
+$db->exec("INSERT INTO numeros (numero, contact_id, type) VALUES ('639981003', $aliceId, 'travail')");
+$db->exec("INSERT INTO numeros (numero, contact_id, type) VALUES ('639981003', $bobId,   'travail')");
+$res = chercherContactParNumero($db, '639981001');
 expect('Contact Alice trouvé',         $res['noms'],                         ['Alice']);
 expect('Type portable correct',        $res['type'],                         'portable');
 expect('Numéro inconnu → null',        chercherContactParNumero($db, '999999999'), null);
 expect('Numéro vide → null',           chercherContactParNumero($db, ''),    null);
-$res2 = chercherContactParNumero($db, '612000003');
+$res2 = chercherContactParNumero($db, '639981003');
 expect('Ambiguïté : 2 noms retournés', count($res2['noms']),                 2);
 
 section('trouverOuCreerContact() + lierNumero()');
@@ -160,9 +162,9 @@ expect('ID > 0',                       $r['id'] > 0,                         tru
 $r2  = trouverOuCreerContact($db2, 'Charlie');
 expect('Doublon → created=false',      $r2['created'],                       false);
 expect('Même ID retourné',             $r2['id'],                            $r['id']);
-expect('lierNumero → created',         lierNumero($db2, $r['id'], '612000010', 'portable'), 'created');
-expect('lierNumero → exists',          lierNumero($db2, $r['id'], '612000010', 'portable'), 'exists');
-expect('lierNumero → updated',         lierNumero($db2, $r['id'], '612000010', 'domicile'), 'updated');
+expect('lierNumero → created',         lierNumero($db2, $r['id'], '639981010', 'portable'), 'created');
+expect('lierNumero → exists',          lierNumero($db2, $r['id'], '639981010', 'portable'), 'exists');
+expect('lierNumero → updated',         lierNumero($db2, $r['id'], '639981010', 'domicile'), 'updated');
 
 section('Auth — hashPassword() + DB');
 require_once __DIR__ . '/auth.php';
@@ -217,8 +219,8 @@ expect('Token stable en session',      csrfToken(),                   $token);
 expect('csrfField() contient le token', str_contains(csrfField(), $token), true);
 
 section('afficherNumero()');
-$rA = afficherNumero('612345678');
-expect('9 chiffres : tel = 0612345678',         $rA['tel'],                             '0612345678');
+$rA = afficherNumero('639980001');
+expect('9 chiffres : tel = 0639980001',         $rA['tel'],                             '0639980001');
 expect('9 chiffres : html commence par "06"',   str_starts_with($rA['html'], '06'),     true);
 expect('9 chiffres : contient num-sp',          str_contains($rA['html'], 'num-sp'),    true);
 expect('9 chiffres : 4 séparateurs',            substr_count($rA['html'], 'num-sp'),    4);

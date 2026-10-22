@@ -19,7 +19,7 @@
 </Files>
 
 # Interdit l'accès direct aux fichiers include PHP (pas de sortie, mais expose leur existence)
-<FilesMatch "^(manage_users|contacts_functions|index_functions|lang|auth|config)\.php$">
+<FilesMatch "^(manage_users|contacts_functions|index_functions|lang|auth|config|numeros_speciaux\.(local|example))\.php$">
     Require all denied
 </FilesMatch>
 

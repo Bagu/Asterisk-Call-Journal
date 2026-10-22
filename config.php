@@ -134,20 +134,18 @@ function initDB(PDO $db): void {
     $stmt = $db->prepare(
         "INSERT OR IGNORE INTO numeros_speciaux (numero, label, categorie) VALUES (?,?,?)"
     );
-    foreach ([
-        ['**1', 'Répondeur',              'system'],
-        ['666', 'Blacklist dernier app.', 'blacklist'],
-        ['667', 'Blacklist nº manuel',    'blacklist'],
-        ['999', 'Retrait blacklist',      'blacklist'],
-        ['201', 'Softphone',                'local'],
-        ['202', 'PC',              'local'],
-        ['203', 'Smartphone',             'local'],
-        ['204', 'Base DECT',              'local'],
-    ] as $s) {
+    foreach (numerosSpeciauxParDefaut() as $s) {
         $stmt->execute($s);
     }
 
     $db->exec("PRAGMA user_version = " . DB_SCHEMA_VERSION);
+}
+
+/** Retourne les numéros spéciaux créés au premier lancement, en lignes [numero, label, categorie].
+ *  Lit numeros_speciaux.local.php (propre à l'installation, non publié) s'il existe, sinon l'exemple. */
+function numerosSpeciauxParDefaut(): array {
+    $local = __DIR__ . '/numeros_speciaux.local.php';
+    return require (is_file($local) ? $local : __DIR__ . '/numeros_speciaux.example.php');
 }
 
 /** Migration : remplace UNIQUE(numero) par UNIQUE(numero, contact_id) sur les bases < v2. */
