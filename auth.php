@@ -71,8 +71,10 @@ function hashPassword(string $password): string {
 
 /**
  * Retourne true si l'utilisateur ou l'IP est verrouillé (trop de tentatives récentes échouées).
+ * L'identifiant est comparé sans espaces autour ni majuscules, comme à la connexion.
  */
 function isLockedOut(PDO $db, string $username, string $ip): bool {
+    $username = strtolower(trim($username));
     $cutoff = date('Y-m-d H:i:s', strtotime('-' . LOCKOUT_MINUTES . ' minutes'));
     $stmt   = $db->prepare("
         SELECT COUNT(*) FROM login_attempts
@@ -88,8 +90,10 @@ function isLockedOut(PDO $db, string $username, string $ip): bool {
  * Enregistre une tentative de connexion (réussie ou non) et purge les entrées > 24 h.
  * Après une réussite, efface aussi les échecs récents de ce couple username/IP
  * pour éviter qu'un lockout se déclenche après une connexion légitime.
+ * L'identifiant est enregistré sans espaces autour ni majuscules.
  */
 function recordLoginAttempt(PDO $db, string $username, string $ip, bool $success): void {
+    $username = strtolower(trim($username));
     $db->prepare("INSERT INTO login_attempts (username, ip, success) VALUES (?,?,?)")
        ->execute([$username, $ip, $success ? 1 : 0]);
     if ($success) {

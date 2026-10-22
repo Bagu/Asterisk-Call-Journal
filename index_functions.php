@@ -15,7 +15,7 @@ function infosLigne(array $row, array $speciaux, array $nomsParNumero): array {
     $posteLabel = $speciaux[$posteRaw]['label']     ?? $posteRaw;
     $posteCat   = $speciaux[$posteRaw]['categorie'] ?? 'local';
 
-	$numExterne = normaliserNumero($isOut ? $dst : $src);
+    $numExterne = normaliserNumero($isOut ? $dst : $src);
     $numRaw     = $isOut ? $dst : $src;
 
     // Normalise le préfixe international pour l'affichage (+33 ou 0033 → 0)
@@ -60,4 +60,24 @@ function formatDuree(int $sec): string {
     if ($sec < 60) return "{$sec}s";
     $m = intdiv($sec, 60); $s = $sec % 60;
     return $s > 0 ? "{$m}m {$s}s" : "{$m}m";
+}
+
+/** Retourne le plus grand identifiant d'appel enregistré, 0 si le journal est vide. */
+function dernierIdAppel(PDO $db): int {
+    return (int)$db->query("SELECT COALESCE(MAX(id), 0) FROM appels")->fetchColumn();
+}
+
+/** Compte les appels enregistrés après l'identifiant $apresId et conformes aux filtres ($where, $params).
+ *  L'identifiant croît à chaque insertion : un appel daté de son début mais enregistré à sa fin est compté. */
+function compterNouveauxAppels(PDO $db, array $where, array $params, int $apresId): int {
+    $s = $db->prepare("SELECT COUNT(*) FROM appels a WHERE " . implode(' AND ', array_merge($where, ['a.id > ?'])));
+    $s->execute(array_merge($params, [$apresId]));
+    return (int)$s->fetchColumn();
+}
+
+/** Retourne l'expression SQL qui normalise la colonne $col comme normaliserNumero() :
+ *  les 9 derniers chiffres d'un numéro (+33, 0033 ou 0 en tête), la valeur telle quelle sinon. */
+function sqlNumeroNormalise(string $col): string {
+    return "CASE WHEN TRIM($col) = '' OR TRIM($col) GLOB '*[^0-9+]*' THEN TRIM($col)"
+         . " ELSE SUBSTR(REPLACE(TRIM($col), '+', ''), -9) END";
 }

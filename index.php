@@ -1,6 +1,7 @@
 <?php
 require 'config.php';
 require 'auth.php';
+require_once 'index_functions.php';
 requireLogin();
 sendSecurityHeaders();
 csrfStart();
@@ -19,7 +20,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'vider
     try {
         $db->beginTransaction();
         $db->exec("DELETE FROM appels");
-        $db->exec("DELETE FROM sqlite_sequence WHERE name='appels'");
         // Crée sync_meta si absente (cas d'un vidage avant toute synchro Python),
         // puis invalide le cache pour forcer la prochaine synchro à télécharger
         // le CSV distant (sinon fetch_remote_calls retourne -1 "CSV inchangé").
@@ -48,6 +48,9 @@ foreach ($db->query("SELECT numero, label, categorie FROM numeros_speciaux")->fe
     $speciaux[$s['numero']] = $s;
 }
 
+// Lu avant les lignes affichées : un appel inséré entre-temps sera signalé, jamais perdu
+$dernierId = dernierIdAppel($db);
+
 // ── Construction de la requête filtrée ────────────────────────────────────────
 $where  = [];
 $params = [];
@@ -67,12 +70,8 @@ if ($filtreNum !== '') {
         $subSQL   = "SELECT numero FROM numeros
                      JOIN contacts ON contacts.id = numeros.contact_id
                      WHERE contacts.nom LIKE ?";
-        $normSrc  = "CASE WHEN LENGTH(TRIM(a.src)) = 10 AND SUBSTR(TRIM(a.src),1,1)='0'
-                          THEN SUBSTR(TRIM(a.src),2)
-                          ELSE TRIM(a.src) END";
-        $normDst  = "CASE WHEN LENGTH(TRIM(a.dst)) = 10 AND SUBSTR(TRIM(a.dst),1,1)='0'
-                          THEN SUBSTR(TRIM(a.dst),2)
-                          ELSE TRIM(a.dst) END";
+        $normSrc  = sqlNumeroNormalise('a.src');
+        $normDst  = sqlNumeroNormalise('a.dst');
         $where[]  = "($normSrc IN ($subSQL) OR $normDst IN ($subSQL))";
         $params[] = $likeName;
         $params[] = $likeName;
@@ -116,8 +115,6 @@ if (!empty($numerosPage)) {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-require_once 'index_functions.php';
-
 /** Génère le HTML des lignes du tableau avec libellés traduits. Retourne ['html'=>string, 'lastDay'=>string]. */
 function renderTableRows(array $appels, array $speciaux, array $nomsParNumero, string $lastDay = ''): array {
     $html = '';
@@ -177,24 +174,16 @@ $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
        && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 $mode   = $_GET['mode'] ?? '';
 
-// Vérifie s'il y a de nouveaux appels depuis une date donnée (auto-refresh léger en mode cron)
+// Compte les appels enregistrés depuis le dernier identifiant vu (auto-refresh léger)
 if ($isAjax && $mode === 'check_new') {
-    $after = $_GET['after'] ?? '';
-    $count = 0;
-    if (preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $after)) {
-        // Applique les mêmes filtres que la vue courante pour éviter les faux positifs
-        $checkWhere = $where
-            ? 'WHERE ' . implode(' AND ', $where) . ' AND a.date_appel > ?'
-            : 'WHERE a.date_appel > ?';
-        $s = $db->prepare("SELECT COUNT(*) FROM appels a $checkWhere");
-        $s->execute(array_merge($params, [$after]));
-        $count = (int)$s->fetchColumn();
-    }
+    // Applique les mêmes filtres que la vue courante pour éviter les faux positifs
+    $count = compterNouveauxAppels($db, $where, $params, max(0, (int)($_GET['after_id'] ?? 0)));
     // Renvoie aussi totalLignes/totalPages pour que le JS rafraîchisse l'indicateur
     // de page sans devoir recharger toute la vue quand l'utilisateur reste en page 2+
     header('Content-Type: application/json');
     echo json_encode([
         'count'       => $count,
+        'lastId'      => $dernierId,
         'totalLignes' => $totalLignes,
         'totalPages'  => $totalPages,
     ]);
@@ -227,16 +216,13 @@ if ($isAjax && $mode === 'rows') {
         'lastDay'    => $result['lastDay'],
         'hasMore'    => $page < $totalPages,
         'page'       => $page,
+        'lastId'     => $dernierId,
         'totalPages' => $totalPages,
     ]);
     exit;
 }
 
 $rendered  = renderTableRows($appels, $speciaux, $nomsParNumero);
-// Date la plus récente du journal respectant les filtres actifs (pour check_new).
-$stmtMax = $db->prepare("SELECT MAX(date_appel) FROM appels a $whereSQL");
-$stmtMax->execute($params);
-$firstDate = (string)$stmtMax->fetchColumn() ?: '';
 // Locale JS pour le formatage des nombres
 $jsLocale  = detectLang() === 'fr' ? 'fr-FR' : 'en-US';
 ?>
@@ -505,15 +491,6 @@ const I18N = {
 // Locale pour le formatage des nombres (ex: séparateur de milliers)
 const LOCALE = <?= json_encode($jsLocale) ?>;
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-/** Formate une Date JS en chaîne "YYYY-MM-DD HH:MM:SS" en heure locale.
- *  Même référentiel que la colonne date_appel en DB (évite les décalages TZ). */
-function formatLocalDateTime(d) {
-    const pad = n => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} `
-         + `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-}
-
 // ── Windowing ─────────────────────────────────────────────────────────────────
 /** Nombre max de pages (de 15 lignes) maintenues simultanément dans le DOM.
  *  Les pages excédentaires sont déchargées du haut ; leur hauteur est conservée
@@ -526,7 +503,7 @@ let totalPages      = <?= (int)$totalPages ?>;
 let totalLignes     = <?= (int)$totalLignes ?>;
 let hasMore         = <?= ($page < $totalPages) ? 'true' : 'false' ?>;
 let lastDay         = <?= json_encode($rendered['lastDay']) ?>;
-let newestDate      = <?= json_encode($firstDate) ?>; // date du dernier appel affiché (pour check_new)
+let lastSeenId      = <?= (int)$dernierId ?>; // identifiant du dernier appel vu (pour check_new)
 let isLoading       = false;
 let isJumping       = false;
 let isSyncing       = false;
@@ -642,6 +619,8 @@ async function loadPage(page) {
         hasMore     = data.hasMore;
         totalPages  = data.totalPages;
         lastDay     = data.lastDay;
+        // La page 1 montre les appels les plus récents : tout ce qui précède data.lastId est vu
+        if (page === 1 && typeof data.lastId === 'number') lastSeenId = Math.max(lastSeenId, data.lastId);
 
         // offsetHeight force un reflow et retourne la hauteur réelle du tbody inséré
         pageWindows.push({ page, tbodyEl: newTbody, height: newTbody.offsetHeight });
@@ -731,8 +710,6 @@ async function jumpToPage(page) {
     scrollZone.scrollTop = 0;
 
     try {
-        // Heure locale au format "YYYY-MM-DD HH:MM:SS" (même référentiel que date_appel en DB)
-        newestDate = formatLocalDateTime(new Date());
         await loadPage(page);
         currentPage = page;
         updatePageInfo();
@@ -855,20 +832,18 @@ function showNewCallsBanner(count) {
     document.getElementById('new-calls-banner').style.display = 'block';
 }
 
-/** Cache la bannière et saute à la page 1.
- *  newestDate est réinitialisé ici pour éviter la re-détection par le timer concurrent. */
+/** Cache la bannière et saute à la page 1, dont le chargement met à jour lastSeenId. */
 function dismissBanner() {
     document.getElementById('new-calls-banner').style.display = 'none';
-    newestDate = formatLocalDateTime(new Date());
     jumpToPage(1);
 }
 
-/** Vérifie si de nouveaux appels existent depuis newestDate.
+/** Vérifie si de nouveaux appels ont été enregistrés après lastSeenId.
  *  Recharge la page 1 si l'utilisateur est en haut, sinon affiche la bannière. */
 async function checkForNewAndBanner() {
     try {
         const params = getFilterParams();
-        params.set('mode', 'check_new'); params.set('after', newestDate);
+        params.set('mode', 'check_new'); params.set('after_id', lastSeenId);
         const resp = await fetch('index.php?' + params, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
         const data = await resp.json();
         if (data.count > 0) {
@@ -882,7 +857,7 @@ async function checkForNewAndBanner() {
                 // Mis à jour avant le saut pour éviter qu'un timer concurrent
                 // re-détecte les mêmes nouveaux appels
                 document.getElementById('new-calls-banner').style.display = 'none';
-                newestDate = formatLocalDateTime(new Date());
+                if (typeof data.lastId === 'number') lastSeenId = Math.max(lastSeenId, data.lastId);
                 await jumpToPage(1);
             } else {
                 showNewCallsBanner(data.count);
@@ -898,10 +873,10 @@ async function checkAndRefreshDisplay() {
 }
 
 /** Déclenché par le bouton Synchroniser : lance la sync Python puis rafraîchit l'affichage.
- *  Si le journal était vide (newestDate absente), provoque un rechargement complet. */
+ *  Si le journal était vide (lastSeenId nul), provoque un rechargement complet. */
 function syncAndRefresh() {
     lancerSync(async () => {
-        if (!newestDate) {
+        if (!lastSeenId) {
             window.location.reload();
         } else {
             await checkForNewAndBanner();

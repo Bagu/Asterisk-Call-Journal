@@ -209,6 +209,12 @@ for ($i = 0; $i < MAX_LOGIN_ATTEMPTS; $i++) {
     $insStmt2->execute(['carol', '192.168.1.100']);
 }
 expect('IP verrouillée → autre username bloqué', isLockedOut($authDb, 'dave', '192.168.1.100'), true);
+// L'identifiant est comparé sans majuscules ni espaces autour, comme à la connexion
+for ($i = 0; $i < MAX_LOGIN_ATTEMPTS; $i++) recordLoginAttempt($authDb, 'erin', '10.0.0.2', false);
+expect('Majuscules → même verrou',               isLockedOut($authDb, 'Erin',   '10.0.0.3'), true);
+expect('Espaces autour → même verrou',           isLockedOut($authDb, ' erin ', '10.0.0.3'), true);
+for ($i = 0; $i < MAX_LOGIN_ATTEMPTS; $i++) recordLoginAttempt($authDb, 'FRANK', '10.0.0.4', false);
+expect('Échecs en majuscules → verrou commun',   isLockedOut($authDb, 'frank',  '10.0.0.5'), true);
 
 section('CSRF');
 csrfStart();
@@ -246,6 +252,35 @@ expect('Backslash \\\\evil',        sanitizeNext('/\\evil.com'),       '');
 expect('Traversée ..',              sanitizeNext('/foo/../bar'),       '');
 expect('URL absolue',               sanitizeNext('http://evil.com'),   '');
 expect('Vide',                      sanitizeNext(''),                  '');
+
+section('Recherche par nom — formats de numéro');
+$db = makeTestDB();
+$db->exec("INSERT INTO contacts (id, nom) VALUES (1, 'Alice')");
+$db->exec("INSERT INTO numeros (numero, contact_id) VALUES ('639980001', 1)");
+$insNum = $db->prepare("INSERT INTO appels (date_appel, src, dst, uniqueid) VALUES ('2026-01-01 10:00:00', ?, '201', ?)");
+foreach (['0639980001', '+33639980001', '0033639980001', '639980001'] as $i => $src) $insNum->execute([$src, "n$i"]);
+$sr = $db->prepare("SELECT COUNT(*) FROM appels a WHERE " . sqlNumeroNormalise('a.src')
+                 . " IN (SELECT numero FROM numeros JOIN contacts ON contacts.id = numeros.contact_id WHERE contacts.nom LIKE ?)");
+$sr->execute(['%Alice%']);
+expect('Alice trouvée sous les 4 formats', (int)$sr->fetchColumn(), 4);
+// Même résultat que normaliserNumero() pour les numéros et codes rencontrés dans le journal
+$sq = $db->prepare("SELECT " . sqlNumeroNormalise('v') . " FROM (SELECT ? AS v)");
+foreach (['0639980001', '+33639980001', '0033639980001', ' 0639980001 ', '201', '0044201234567', '**1', '##203', '#*203'] as $v) {
+    $sq->execute([$v]);
+    expect("SQL = PHP pour '$v'", $sq->fetchColumn(), normaliserNumero($v));
+}
+
+section('Nouveaux appels — check_new');
+expect('Journal vide → dernier id 0', dernierIdAppel(makeTestDB()), 0);
+$db  = makeTestDB();
+$ins = $db->prepare("INSERT INTO appels (date_appel, src, dst, duree, uniqueid) VALUES (?, '0639980001', '201', ?, ?)");
+$ins->execute(['2026-01-01 10:05:00', 30, 'c1']);
+$vu = dernierIdAppel($db);
+// Appel long : daté de son début (10:00), enregistré à sa fin, donc après c1
+$ins->execute(['2026-01-01 10:00:00', 600, 'c2']);
+expect('Appel long enregistré après coup → compté', compterNouveauxAppels($db, [], [], $vu), 1);
+expect('Filtres de la vue appliqués',              compterNouveauxAppels($db, ['a.etat = ?'], ['ANSWERED'], $vu), 0);
+expect('Rien après le dernier id',                 compterNouveauxAppels($db, [], [], dernierIdAppel($db)), 0);
 
 // ═════════════════════════════════════════════════════════════════════════════
 
