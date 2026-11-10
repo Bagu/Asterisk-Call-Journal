@@ -1,5 +1,5 @@
 # Interdit l'accès direct aux fichiers sensibles (base de données, scripts, configuration)
-<FilesMatch "\.(db|sqlite|sqlite3|py|env|csv|ini|config|lock)$">
+<FilesMatch "\.(db|sqlite|sqlite3|py|env|csv|ini|config|lock|key)$">
     Require all denied
 </FilesMatch>
 
@@ -19,7 +19,7 @@
 </Files>
 
 # Interdit l'accès direct aux fichiers include PHP (pas de sortie, mais expose leur existence)
-<FilesMatch "^(manage_users|contacts_functions|index_functions|lang|auth|config|numeros_speciaux\.(local|example))\.php$">
+<FilesMatch "^(manage_users|contacts_functions|index_functions|carddav_functions|carddav_sync|lang|auth|config|numeros_speciaux\.(local|example))\.php$">
     Require all denied
 </FilesMatch>
 
@@ -29,3 +29,6 @@ RewriteRule ^locales(/|$) - [F,L]
 
 # Bloque l'accès web au dossier sessions/ (fichiers de session PHP).
 RewriteRule ^sessions(/|$) - [F,L]
+
+# Bloque l'accès web au dossier tests/ (faux serveur CardDAV et robot, en ligne de commande seulement).
+RewriteRule ^tests(/|$) - [F,L]

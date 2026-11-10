@@ -1,7 +1,11 @@
 <?php
 define('DB_PATH',        __DIR__ . '/journal.db');
 define('NUMERO_MASQUE',  'Masqué');
-define('DB_SCHEMA_VERSION', 3);
+define('DB_SCHEMA_VERSION', 4);
+
+// Clé de chiffrement des mots de passe des carnets CardDAV, créée au premier besoin.
+// À placer de préférence hors du dossier web (ex : /etc/secrets/carddav.key).
+if (!defined('CARDDAV_KEY_PATH')) define('CARDDAV_KEY_PATH', __DIR__ . '/carddav.key');
 
 // 'web'  : sync Python déclenchée par le bouton / auto-refresh.
 // 'cron' : Python lancé par tâche planifiée ; l'auto-refresh ne rafraîchit que l'affichage.
@@ -46,7 +50,7 @@ function sendSecurityHeaders(): void {
     $nonce = cspNonce();
     header('X-Content-Type-Options: nosniff');
     header('Referrer-Policy: same-origin');
-    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-$nonce'; style-src 'self' 'unsafe-inline'; img-src * data:; frame-ancestors 'self' https://bitwarden.bagu.biz");
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-$nonce'; style-src 'self' 'unsafe-inline'; img-src * data:; frame-ancestors 'self'");
     header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
     if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
         header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
@@ -86,7 +90,8 @@ function initDB(PDO $db): void {
         $db->exec("ALTER TABLE appels ADD COLUMN uniqueid TEXT");
     }
 
-    if ((int)$db->query("PRAGMA user_version")->fetchColumn() >= DB_SCHEMA_VERSION) return;
+    $version = (int)$db->query("PRAGMA user_version")->fetchColumn();
+    if ($version >= DB_SCHEMA_VERSION) return;
 
     $db->exec("CREATE TABLE IF NOT EXISTS contacts (
         id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -131,14 +136,59 @@ function initDB(PDO $db): void {
     $db->exec("CREATE INDEX IF NOT EXISTS idx_numeros_numero           ON numeros(numero)");
     $db->exec("CREATE INDEX IF NOT EXISTS idx_numeros_cid              ON numeros(contact_id)");
 
-    $stmt = $db->prepare(
-        "INSERT OR IGNORE INTO numeros_speciaux (numero, label, categorie) VALUES (?,?,?)"
-    );
-    foreach (numerosSpeciauxParDefaut() as $s) {
-        $stmt->execute($s);
+    // Numéros spéciaux par défaut : jusqu'au schéma v3 seulement, pour ne pas faire revenir
+    // à une montée de version ceux que l'usager a supprimés.
+    if ($version < 3) {
+        $stmt = $db->prepare(
+            "INSERT OR IGNORE INTO numeros_speciaux (numero, label, categorie) VALUES (?,?,?)"
+        );
+        foreach (numerosSpeciauxParDefaut() as $s) {
+            $stmt->execute($s);
+        }
     }
 
+    migrateCarnetsCarddav($db);
+
     $db->exec("PRAGMA user_version = " . DB_SCHEMA_VERSION);
+}
+
+/**
+ * Schéma v4 : carnets CardDAV et origine des numéros.
+ * manuel = 1 : saisi à la main ou importé en CSV, jamais retiré par une synchronisation.
+ * manuel = 0 : venu d'un carnet, retiré quand plus aucun carnet ne le fournit.
+ */
+function migrateCarnetsCarddav(PDO $db): void {
+    foreach (['contacts', 'numeros'] as $table) {
+        $cols = array_column($db->query("PRAGMA table_info($table)")->fetchAll(), 'name');
+        if (!in_array('manuel', $cols, true)) {
+            $db->exec("ALTER TABLE $table ADD COLUMN manuel INTEGER NOT NULL DEFAULT 1");
+        }
+    }
+
+    $db->exec("CREATE TABLE IF NOT EXISTS carnets (
+        id               INTEGER PRIMARY KEY AUTOINCREMENT,
+        nom              TEXT NOT NULL,
+        url              TEXT NOT NULL,
+        utilisateur      TEXT NOT NULL DEFAULT '',
+        mot_de_passe     TEXT NOT NULL DEFAULT '',
+        actif            INTEGER NOT NULL DEFAULT 1,
+        ctag             TEXT,
+        nb_fiches        INTEGER,
+        derniere_synchro TEXT,
+        dernier_ok       INTEGER,
+        dernier_etat     TEXT,
+        created_at       TEXT DEFAULT (datetime('now','localtime')),
+        UNIQUE(url, utilisateur)
+    )");
+
+    $db->exec("CREATE TABLE IF NOT EXISTS sources_numeros (
+        numero_id INTEGER NOT NULL,
+        carnet_id INTEGER NOT NULL,
+        PRIMARY KEY (numero_id, carnet_id),
+        FOREIGN KEY(numero_id) REFERENCES numeros(id) ON DELETE CASCADE,
+        FOREIGN KEY(carnet_id) REFERENCES carnets(id) ON DELETE CASCADE
+    )");
+    $db->exec("CREATE INDEX IF NOT EXISTS idx_sources_carnet ON sources_numeros(carnet_id)");
 }
 
 /** Retourne les numéros spéciaux créés au premier lancement, en lignes [numero, label, categorie].

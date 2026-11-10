@@ -14,6 +14,7 @@ if (PHP_SAPI !== 'cli') {
 require __DIR__ . '/config.php';
 require_once __DIR__ . '/contacts_functions.php';
 require_once __DIR__ . '/index_functions.php';
+require_once __DIR__ . '/carddav_functions.php';
 
 // ── Détection du contexte de sortie ──────────────────────────────────────────
 $isCli     = PHP_SAPI === 'cli';
@@ -281,6 +282,167 @@ $ins->execute(['2026-01-01 10:00:00', 600, 'c2']);
 expect('Appel long enregistré après coup → compté', compterNouveauxAppels($db, [], [], $vu), 1);
 expect('Filtres de la vue appliqués',              compterNouveauxAppels($db, ['a.etat = ?'], ['ANSWERED'], $vu), 0);
 expect('Rien après le dernier id',                 compterNouveauxAppels($db, [], [], dernierIdAppel($db)), 0);
+
+section('CardDAV : vcardLire()');
+$vc = "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Dupont\\, Jean\r\nN:Dupont;Jean;;;\r\n"
+    . "TEL;TYPE=CELL:+33 6 39 98 00 21\r\nitem1.TEL;type=WORK;type=VOICE:01 99 00 00 22\r\n"
+    . "TEL;TYPE=HOME:0465\r\n 710023\r\nEND:VCARD\r\n";
+$f = vcardLire($vc);
+expect('Une fiche lue',                       count($f), 1);
+expect('FN déséchappé',                       $f[0]['nom'], 'Dupont, Jean');
+expect('Trois numéros',                       count($f[0]['numeros']), 3);
+expect('CELL → portable',                     $f[0]['numeros'][0], ['+33 6 39 98 00 21', 'portable']);
+expect('Groupe item1. et types multiples',    $f[0]['numeros'][1], ['01 99 00 00 22', 'travail']);
+expect('Ligne repliée recollée',              $f[0]['numeros'][2], ['0465710023', 'domicile']);
+$f = vcardLire("BEGIN:VCARD\nVERSION:4.0\nN:Martin;Paul;;;\nTEL;VALUE=uri;TYPE=\"cell,voice\":tel:+33-6-39-98-00-24;ext=12\nEND:VCARD");
+expect('Sans FN : nom depuis N',              $f[0]['nom'], 'Paul Martin');
+expect('vCard 4 : tel: et ;ext retirés',      $f[0]['numeros'][0], ['+33-6-39-98-00-24', 'portable']);
+$f = vcardLire("BEGIN:VCARD\nVERSION:2.1\nFN;ENCODING=QUOTED-PRINTABLE;CHARSET=UTF-8:H=C3=A9l=C3=\n=A8ne\nTEL;CELL;PREF:0639980025\nEND:VCARD");
+expect('vCard 2.1 : quoted-printable sur deux lignes', $f[0]['nom'], 'Hélène');
+expect('vCard 2.1 : type sans TYPE=',         $f[0]['numeros'][0][1], 'portable');
+$f = vcardLire("BEGIN:VCARD\nVERSION:3.0\nORG:ACME;Ventes\nTEL:0353010026\nEND:VCARD");
+expect('Sans FN ni N : nom depuis ORG',       $f[0]['nom'], 'ACME');
+expect('Sans type → inconnu',                 $f[0]['numeros'][0][1], 'inconnu');
+$f = vcardLire("BEGIN:VCARD\nVERSION:3.0\nFN:Amis\nX-ADDRESSBOOKSERVER-KIND:group\nEND:VCARD");
+expect('Fiche de groupe repérée',             $f[0]['groupe'], true);
+expect('Deux fiches dans un même texte',      count(vcardLire($vc . $vc)), 2);
+expect('Texte sans vCard → aucune fiche',     vcardLire("rien d'utile"), []);
+$f = vcardLire("BEGIN:VCARD\nFN:Ren\xE9\nTEL:0639980025\nEND:VCARD");
+expect('Windows-1252 converti en UTF-8',      $f[0]['nom'], 'René');
+
+section('CardDAV : vcardTypeNumero()');
+expect('iphone → portable',                   vcardTypeNumero(['IPHONE']), 'portable');
+expect('work+cell → portable',                vcardTypeNumero(['work', 'cell']), 'portable');
+expect('fax+work → autre',                    vcardTypeNumero(['fax', 'work']), 'autre');
+expect('voice seul → inconnu',                vcardTypeNumero(['voice', 'pref']), 'inconnu');
+expect('main → autre',                        vcardTypeNumero(['main']), 'autre');
+
+section('CardDAV : chiffrement des mots de passe');
+$cleFichier = tempnam(sys_get_temp_dir(), 'cle');
+unlink($cleFichier);
+$cle = carddavCle($cleFichier);
+expect('Clé créée de 32 octets',              strlen($cle), 32);
+expect('Clé relue identique',                 carddavCle($cleFichier), $cle);
+$ch = carddavChiffrer('s3cret:é', $cle);
+expect('Préfixe de version',                  str_starts_with($ch, 'v1:'), true);
+expect('Mot de passe absent du chiffré',      str_contains($ch, 's3cret'), false);
+expect('Aller-retour',                        carddavDechiffrer($ch, $cle), 's3cret:é');
+expect('Deux chiffrements différents (IV)',   carddavChiffrer('x', $cle) !== carddavChiffrer('x', $cle), true);
+expect('Autre clé → null',                    carddavDechiffrer($ch, random_bytes(32)), null);
+$abime = substr($ch, 0, -2) . (substr($ch, -2) === 'AA' ? 'BB' : 'AA');
+expect('Chiffré abîmé → null',                carddavDechiffrer($abime, $cle), null);
+expect('Vide reste vide',                     carddavDechiffrer(carddavChiffrer('', $cle), $cle), '');
+file_put_contents($cleFichier, 'trop court');
+$leve = false;
+try { carddavCle($cleFichier); } catch (RuntimeException) { $leve = true; }
+expect('Clé illisible → exception',           $leve, true);
+unlink($cleFichier);
+
+section('CardDAV : adresses et redirections');
+expect('https accepté',                       carddavUrlValide('https://nas.lan:5001/carddav/'), true);
+expect('file: refusé',                        carddavUrlValide('file:///etc/passwd'), false);
+expect('php: refusé',                         carddavUrlValide('php://filter/resource=config.php'), false);
+expect('Chemin absolu résolu',                carddavResoudre('https://a.fr:8443/x/y/', '/dav/b/'), 'https://a.fr:8443/dav/b/');
+expect('Chemin relatif résolu',               carddavResoudre('https://a.fr/x/y/', 'z/'), 'https://a.fr/x/y/z/');
+expect('Même hôte → sûr',                     carddavRedirectionSure('https://a.fr/', 'https://a.fr/b'), true);
+expect('Sous-domaine du même domaine → sûr',  carddavRedirectionSure('https://contacts.icloud.com/', 'https://p1-contacts.icloud.com/'), true);
+expect('Autre domaine → refusé',              carddavRedirectionSure('https://a.fr/', 'https://evil.com/'), false);
+expect('https vers http → refusé',            carddavRedirectionSure('https://a.fr/', 'http://a.fr/'), false);
+expect('Autre IP → refusé',                   carddavRedirectionSure('http://10.0.0.1/', 'http://10.0.0.2/'), false);
+expect('Même ressource malgré la barre finale', carddavMemeRessource('https://a.fr/dav/b', '/dav/b/'), true);
+
+section('CardDAV : carddavLireMultistatus()');
+$xml = '<?xml version="1.0"?><d:multistatus xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:carddav">'
+     . '<d:response><d:href>/dav/b/</d:href><d:propstat><d:prop><d:resourcetype><d:collection/><c:addressbook/></d:resourcetype>'
+     . '<d:displayname>Perso</d:displayname></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat>'
+     . '<d:propstat><d:prop><d:getctag/></d:prop><d:status>HTTP/1.1 404 Not Found</d:status></d:propstat></d:response>'
+     . '<d:response><d:href>/dav/b/1.vcf</d:href><d:propstat><d:prop><c:address-data>BEGIN:VCARD&#13;
+FN:A&#13;
+END:VCARD</c:address-data></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>';
+$ms = carddavLireMultistatus($xml);
+expect('Deux réponses',                       count($ms), 2);
+expect('Type carnet repéré',                  in_array('{urn:ietf:params:xml:ns:carddav}addressbook', $ms[0]['props']['{DAV:}resourcetype']['enfants'], true), true);
+expect('Propriété en 404 écartée',            isset($ms[0]['props']['{http://calendarserver.org/ns/}getctag']), false);
+expect('address-data lu',                     str_contains($ms[1]['props']['{urn:ietf:params:xml:ns:carddav}address-data']['texte'], 'FN:A'), true);
+expect('XML cassé → null',                    carddavLireMultistatus('<d:multistatus'), null);
+$temoin = tempnam(sys_get_temp_dir(), 'xxe');
+file_put_contents($temoin, 'secret-xxe');
+$xxe = '<?xml version="1.0"?><!DOCTYPE d [<!ENTITY x SYSTEM "file:///' . str_replace('\\', '/', $temoin) . '">]>'
+     . '<d:multistatus xmlns:d="DAV:"><d:response><d:href>&x;</d:href></d:response></d:multistatus>';
+expect('DOCTYPE refusé (entités, XXE)',      carddavLireMultistatus($xxe), null);
+unlink($temoin);
+$bombe = '<?xml version="1.0"?><!DOCTYPE d [<!ENTITY a "aaaaaaaaaa"><!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">]>'
+       . '<d:multistatus xmlns:d="DAV:"><d:response><d:href>&b;</d:href></d:response></d:multistatus>';
+expect('DOCTYPE refusé (expansion d\'entités)', carddavLireMultistatus($bombe), null);
+
+section('CardDAV : synchronisation en miroir');
+$db = makeTestDB();
+$db->exec("INSERT INTO carnets (id, nom, url) VALUES (1, 'A', 'https://a/'), (2, 'B', 'https://b/')");
+$fiche = fn(string $nom, array $nums) => ['nom' => $nom, 'numeros' => $nums, 'groupe' => false];
+$nbNum = fn() => (int)$db->query("SELECT COUNT(*) FROM numeros")->fetchColumn();
+$nbCon = fn() => (int)$db->query("SELECT COUNT(*) FROM contacts")->fetchColumn();
+$manuel = trouverOuCreerContact($db, 'Manuel');
+lierNumero($db, $manuel['id'], '639980039', 'domicile');
+
+$st = carddavAppliquer($db, 1, [
+    $fiche('Alice', [['06 39 98 00 31', 'portable'], ['+33639980031', 'inconnu'], ['01 99 00 00 32', 'travail']]),
+    $fiche('Manuel', [['0639980039', 'portable'], ['0639980040', 'portable']]),
+    $fiche('', [['0639980041', 'portable']]),
+    $fiche('Sans numéro', [['abc', 'portable']]),
+    ['nom' => 'Groupe', 'numeros' => [['0639980042', 'autre']], 'groupe' => true],
+]);
+expect('Contacts créés (Alice seule)',        $st['contacts_crees'], 1);
+expect('Numéros ajoutés (doublon fusionné)',  $st['numeros_ajoutes'], 3);
+expect('Numéro manuel : type mis à jour',     $st['numeros_modifies'], 1);
+expect('Fiches ignorées comptées',            [$st['sans_nom'], $st['sans_numero'], $st['groupes']], [1, 1, 1]);
+expect('Contact créé marqué non manuel',      (int)$db->query("SELECT manuel FROM contacts WHERE nom='Alice'")->fetchColumn(), 0);
+expect('Numéro manuel resté manuel',          (int)$db->query("SELECT manuel FROM numeros WHERE numero='639980039'")->fetchColumn(), 1);
+expect('Liens vers le carnet',                carddavNbNumeros($db, 1), 4);
+expect('Recherche par numéro trouve Alice',   chercherContactParNumero($db, '639980031')['noms'], ['Alice']);
+
+carddavAppliquer($db, 2, [$fiche('Alice', [['0639980031', 'portable']])]);
+$st = carddavAppliquer($db, 1, [$fiche('Manuel', [['0639980040', 'portable']])]);
+expect('Retirés : fixe d\'Alice et lien manuel', $st['numeros_retires'], 1);
+expect('Alice gardée : fournie par B',        chercherContactParNumero($db, '639980031')['noms'], ['Alice']);
+expect('Numéro manuel jamais retiré',         chercherContactParNumero($db, '639980039')['noms'], ['Manuel']);
+$st = carddavAppliquer($db, 2, []);
+expect('B vide : Alice retirée',              [$st['numeros_retires'], $st['contacts_retires']], [1, 1]);
+expect('Contact manuel jamais retiré',        trouverOuCreerContact($db, 'Manuel', false)['created'], false);
+
+$c = trouverOuCreerContact($db, 'Bob', false);
+lierNumeroId($db, $c['id'], '639980060', 'portable', false);
+lierNumero($db, $c['id'], '639980060', 'portable');
+expect('Saisie à la main d\'un numéro de carnet → manuel', (int)$db->query("SELECT manuel FROM numeros WHERE numero='639980060'")->fetchColumn(), 1);
+trouverOuCreerContact($db, 'Bob');
+expect('Saisie à la main d\'un contact de carnet → manuel', (int)$db->query("SELECT manuel FROM contacts WHERE nom='Bob'")->fetchColumn(), 1);
+
+carddavAppliquer($db, 1, [$fiche('Carla', [['0639980050', 'portable']])]);
+$db->exec("DELETE FROM carnets WHERE id = 1");
+$n = carddavNettoyer($db);
+expect('Carnet supprimé : ses numéros partent', $n['numeros_retires'] >= 1 && chercherContactParNumero($db, '639980050') === null, true);
+expect('Carnet supprimé : numéro manuel reste', chercherContactParNumero($db, '639980039')['noms'] ?? null, ['Manuel']);
+
+section('CardDAV : migration d\'une base v3');
+$db = new PDO('sqlite::memory:');
+$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+$db->exec("PRAGMA foreign_keys=ON");
+$db->exec("CREATE TABLE contacts (id INTEGER PRIMARY KEY AUTOINCREMENT, nom TEXT NOT NULL UNIQUE,
+           created_at TEXT, updated_at TEXT)");
+$db->exec("CREATE TABLE numeros (id INTEGER PRIMARY KEY AUTOINCREMENT, numero TEXT NOT NULL, contact_id INTEGER NOT NULL,
+           type TEXT DEFAULT 'inconnu', FOREIGN KEY(contact_id) REFERENCES contacts(id) ON DELETE CASCADE, UNIQUE(numero, contact_id))");
+$db->exec("INSERT INTO contacts (nom) VALUES ('Ancien')");
+$db->exec("INSERT INTO numeros (numero, contact_id) VALUES ('639980070', 1)");
+$db->exec("PRAGMA user_version = 3");
+initDB($db);
+expect('Version de schéma 4',                 (int)$db->query("PRAGMA user_version")->fetchColumn(), 4);
+expect('Contact existant reste manuel',       (int)$db->query("SELECT manuel FROM contacts")->fetchColumn(), 1);
+expect('Numéro existant reste manuel',        (int)$db->query("SELECT manuel FROM numeros")->fetchColumn(), 1);
+expect('Table carnets créée',                 (int)$db->query("SELECT COUNT(*) FROM carnets")->fetchColumn(), 0);
+expect('Numéros spéciaux supprimés pas réinsérés', (int)$db->query("SELECT COUNT(*) FROM numeros_speciaux")->fetchColumn(), 0);
+expect('Base neuve : numéros spéciaux par défaut', (int)makeTestDB()->query("SELECT COUNT(*) FROM numeros_speciaux")->fetchColumn() > 0, true);
+initDB($db);
+expect('Seconde initialisation sans erreur',  (int)$db->query("PRAGMA user_version")->fetchColumn(), 4);
 
 // ═════════════════════════════════════════════════════════════════════════════
 

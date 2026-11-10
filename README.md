@@ -21,7 +21,7 @@ interface responsive avec scroll infini, filtres et recherche par numéro.
 
 - Consultation du journal des appels avec scroll infini (virtual windowing)
 - Synchronisation SFTP du CDR Asterisk (manuelle ou par tâche planifiée)
-- Identification des appelants via un annuaire de contacts (import CSV)
+- Identification des appelants via un annuaire de contacts (import CSV, synchro de carnets CardDAV)
 - Gestion des numéros spéciaux Asterisk (répondeur, blacklist, redirections…)
 - Interface multilingue (français / anglais, détection automatique via `Accept-Language`)
 - Authentification multi-utilisateurs avec rôles admin / user
@@ -179,6 +179,28 @@ Dans `config.php`, la constante `SYNC_MODE` contrôle le comportement de l'auto-
 schtasks /create /tn "JournalAppels" /tr "python C:\chemin\vers\journal\sync_calls.py" /sc minute /mo 5
 ```
 
+### Carnets CardDAV
+
+La page **Carnets** (réservée aux admins) synchronise les contacts depuis autant de carnets CardDAV que voulu : Nextcloud, Synology Contacts, Radicale, iCloud, Fastmail... On peut donner l'adresse exacte d'un carnet, ou seulement celle du serveur : les carnets du compte sont alors listés et on coche ceux à ajouter.
+
+- Lecture seule : rien n'est écrit sur le serveur CardDAV.
+- Chaque carnet est recopié tel quel. Un contact retiré ou modifié sur le serveur l'est aussi ici à la synchro suivante.
+- Une synchro ne retire jamais un numéro saisi à la main ou importé en CSV. Elle retire un numéro venu d'un carnet quand plus aucun carnet ne le fournit. Une icône 📇 sur la page Contacts indique de quel carnet il vient.
+- Si un carnet arrive vide alors qu'il fournissait des numéros, la synchro est refusée : une panne du serveur ne vide pas l'annuaire.
+- Authentification Basic, à utiliser en HTTPS. Les mots de passe sont chiffrés (AES-256-GCM) dans `journal.db`. La clé est créée au premier usage dans le fichier défini par `CARDDAV_KEY_PATH` dans `config.php` ; mieux vaut la placer hors du dossier web. Si elle est perdue, il faut ressaisir les mots de passe.
+
+Le bouton **Tout synchroniser** relit les carnets actifs. Pour une synchro automatique, `carddav_sync.php` ne relit un carnet que si sa version a changé sur le serveur (`--forcer` pour tout relire) :
+
+```cron
+*/30 * * * * www-data php /var/www/journal/carddav_sync.php >> /var/log/journal-carnets.log 2>&1
+```
+
+```powershell
+schtasks /create /tn "JournalCarnets" /tr "php C:\chemin\vers\journal\carddav_sync.php" /sc minute /mo 30
+```
+
+Essais : `php tests.php`, puis `php tests/robot_carddav.php`, qui lance un faux serveur CardDAV local et vérifie découverte, synchro, changements et pannes de bout en bout. Le dossier `tests/` n'a pas besoin d'être déposé sur le serveur.
+
 ### Gestion des utilisateurs
 
 ```bash
@@ -198,7 +220,7 @@ php manage_users.php list
 - Les sessions sont sécurisées : `HttpOnly`, `SameSite=Lax`, `Secure` (si HTTPS)
 - Toutes les requêtes POST sont protégées par un token CSRF
 - Le brute-force est limité à 5 tentatives / 15 minutes, par utilisateur ET par IP
-- Les fichiers sensibles (`.db`, `.env`, `.py`, `.csv`, `known_hosts`) sont bloqués par Apache
+- Les fichiers sensibles (`.db`, `.env`, `.py`, `.csv`, `.key`, `known_hosts`) et le dossier `tests/` sont bloqués par Apache
 - L'interface est marquée `noindex, nofollow` (non indexée par les moteurs de recherche)
 - Supprimer tests.php après validation
 
@@ -217,7 +239,7 @@ and phone number search.
 
 - Infinite-scroll call log with virtual windowing (DOM off-screen unloading)
 - Asterisk CDR SFTP synchronisation (manual button or scheduled cron job)
-- Caller identification via a contact directory (CSV import supported)
+- Caller identification via a contact directory (CSV import, CardDAV address book sync)
 - Asterisk special numbers management (voicemail, blacklist, call transfers…)
 - Multilingual UI (French / English, auto-detected via `Accept-Language`)
 - Multi-user authentication with admin / user roles
@@ -352,6 +374,28 @@ Set `SYNC_MODE` in `config.php`:
 schtasks /create /tn "JournalAppels" /tr "python C:\path\to\journal\sync_calls.py" /sc minute /mo 5
 ```
 
+### CardDAV address books
+
+The **Address books** page (admins only) syncs contacts from as many CardDAV address books as you like: Nextcloud, Synology Contacts, Radicale, iCloud, Fastmail... Give either the exact address book URL or just the server URL; in the second case the account's address books are listed and you tick the ones to add.
+
+- Read only: nothing is written to the CardDAV server.
+- Each address book is mirrored. A contact removed or changed on the server is removed or changed here at the next sync.
+- A sync never removes a number entered by hand or imported from CSV. It removes a number that came from an address book once no address book provides it any more. A 📇 icon on the Contacts page shows which address book a number comes from.
+- If an address book arrives empty although it used to provide numbers, the sync is refused, so a server outage cannot wipe the directory.
+- Basic authentication, to be used over HTTPS. Passwords are encrypted (AES-256-GCM) in `journal.db`. The key is created on first use in the file set by `CARDDAV_KEY_PATH` in `config.php`; keep it outside the web folder if you can. If it is lost, the passwords have to be entered again.
+
+The **Sync all** button reads every active address book. For automatic sync, `carddav_sync.php` only reads an address book again when its version changed on the server (`--forcer` reads everything):
+
+```cron
+*/30 * * * * www-data php /var/www/journal/carddav_sync.php >> /var/log/journal-carnets.log 2>&1
+```
+
+```powershell
+schtasks /create /tn "JournalCarnets" /tr "php C:\path\to\journal\carddav_sync.php" /sc minute /mo 30
+```
+
+Tests: `php tests.php`, then `php tests/robot_carddav.php`, which starts a local fake CardDAV server and checks discovery, sync, changes and outages end to end. The `tests/` folder does not need to go on the server.
+
 ### User Management
 
 ```bash
@@ -371,6 +415,6 @@ php manage_users.php list
 - Secure sessions: `HttpOnly`, `SameSite=Lax`, `Secure` (when HTTPS)
 - All POST requests protected with CSRF tokens
 - Brute-force limited to 5 attempts / 15 minutes, per username AND per IP
-- Sensitive files (`.db`, `.env`, `.py`, `.csv`, `known_hosts`) blocked by Apache
+- Sensitive files (`.db`, `.env`, `.py`, `.csv`, `.key`, `known_hosts`) and the `tests/` folder blocked by Apache
 - Pages marked `noindex, nofollow`
 - Delete tests.php after validation

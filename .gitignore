@@ -28,3 +28,5 @@ sessions/sess_*
 
 # Numéros spéciaux propres à l'installation
 numeros_speciaux.local.php
+carddav.key
+carddav.lock

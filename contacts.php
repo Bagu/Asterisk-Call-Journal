@@ -207,7 +207,9 @@ $nbSansNumero = (int)$db->query(
 // Requête principale paginée : LIMIT/OFFSET en paramètres positionnels (pas de mélange ?/: avec PDO)
 $stmtC = $db->prepare("
     SELECT c.id, c.nom, c.created_at,
-           GROUP_CONCAT(n.id || '|' || n.numero || '|' || n.type, ';;') AS numeros_raw
+           GROUP_CONCAT(n.id || '|' || n.numero || '|' || n.type || '|' || REPLACE(IFNULL(
+               (SELECT GROUP_CONCAT(k.nom, ', ') FROM sources_numeros s
+                JOIN carnets k ON k.id = s.carnet_id WHERE s.numero_id = n.id), ''), ';;', ';'), ';;') AS numeros_raw
     FROM contacts c
     LEFT JOIN numeros n ON n.contact_id = c.id
     $whereSQL
@@ -247,6 +249,7 @@ $contacts = $stmtC->fetchAll();
     <h2>👥 <?= htmlspecialchars(t('contacts.title')) ?></h2>
     <a href="index.php">📞 <?= htmlspecialchars(t('nav.journal')) ?></a>
     <a href="numeros_speciaux.php">⚙️ <?= htmlspecialchars(t('nav.speciaux')) ?></a>
+    <a href="carnets.php">📇 <?= htmlspecialchars(t('nav.carnets')) ?></a>
     <?= topbarUserHtml() ?>
     <!-- Bouton bascule thème clair/sombre -->
     <button id="btn-theme" title="Changer de thème">🌙</button>
@@ -425,10 +428,10 @@ $contacts = $stmtC->fetchAll();
             if ($contact['numeros_raw']) {
                 foreach (explode(';;', $contact['numeros_raw']) as $raw) {
                     // Défaut '' pour éviter Undefined array key si GROUP_CONCAT tronque
-                    $parts = array_pad(explode('|', $raw, 3), 3, '');
-                    [$nid, $nnum, $ntype] = $parts;
+                    $parts = array_pad(explode('|', $raw, 4), 4, '');
+                    [$nid, $nnum, $ntype, $nsrc] = $parts;
                     if ($nid === '' || $nnum === '') continue;
-                    $numeros[] = ['id' => $nid, 'numero' => $nnum, 'type' => $ntype ?: 'inconnu'];
+                    $numeros[] = ['id' => $nid, 'numero' => $nnum, 'type' => $ntype ?: 'inconnu', 'sources' => $nsrc];
                 }
             }
         ?>
@@ -452,6 +455,9 @@ $contacts = $stmtC->fetchAll();
                         </form>
                         <?php $numFmt = afficherNumero($n['numero']); ?>
                         <a href="tel:<?= htmlspecialchars($numFmt['tel']) ?>" class="num-lien"><?= $numFmt['html'] ?></a>
+                        <?php if ($n['sources'] !== ''): ?>
+                            <span title="<?= htmlspecialchars(t('contacts.source_carnet', ['name' => $n['sources']])) ?>">📇</span>
+                        <?php endif; ?>
                         <form method="post" class="form-confirm" style="display:inline"
                               data-confirm="<?= htmlspecialchars(t('contacts.del_num_confirm')) ?>">
                             <?= csrfField() ?>

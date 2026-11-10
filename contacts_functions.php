@@ -1,29 +1,50 @@
 <?php
-/** Trouve ou crée un contact par nom exact. Retourne ['id'=>int, 'created'=>bool]. */
-function trouverOuCreerContact(PDO $db, string $nom): array {
-    $s = $db->prepare("SELECT id FROM contacts WHERE nom = ?");
+/**
+ * Trouve ou crée un contact par nom exact. Retourne ['id'=>int, 'created'=>bool].
+ * $manuel = true (saisie, import CSV) : le contact devient manuel s'il venait d'un carnet.
+ */
+function trouverOuCreerContact(PDO $db, string $nom, bool $manuel = true): array {
+    $s = $db->prepare("SELECT id, manuel FROM contacts WHERE nom = ?");
     $s->execute([$nom]);
     $row = $s->fetch();
-    if ($row) return ['id' => (int)$row['id'], 'created' => false];
-    $db->prepare("INSERT INTO contacts (nom) VALUES (?)")->execute([$nom]);
+    if ($row) {
+        if ($manuel && !(int)$row['manuel']) {
+            $db->prepare("UPDATE contacts SET manuel = 1 WHERE id = ?")->execute([$row['id']]);
+        }
+        return ['id' => (int)$row['id'], 'created' => false];
+    }
+    $db->prepare("INSERT INTO contacts (nom, manuel) VALUES (?, ?)")->execute([$nom, (int)$manuel]);
     return ['id' => (int)$db->lastInsertId(), 'created' => true];
 }
 
-/** Lie un numéro normalisé à un contact. Retourne 'created' | 'updated' | 'exists'. */
-function lierNumero(PDO $db, int $contactId, string $numNorm, string $type): string {
-    $s = $db->prepare("SELECT id, type FROM numeros WHERE numero = ? AND contact_id = ?");
+/**
+ * Lie un numéro normalisé à un contact.
+ * Retourne ['id'=>int, 'etat'=>'created'|'updated'|'exists'].
+ * Le type n'est remplacé que par un type connu. $manuel comme pour trouverOuCreerContact().
+ */
+function lierNumeroId(PDO $db, int $contactId, string $numNorm, string $type, bool $manuel = true): array {
+    $s = $db->prepare("SELECT id, type, manuel FROM numeros WHERE numero = ? AND contact_id = ?");
     $s->execute([$numNorm, $contactId]);
     $row = $s->fetch();
     if ($row) {
-        if ($type !== 'inconnu' && $row['type'] !== $type) {
-            $db->prepare("UPDATE numeros SET type = ? WHERE id = ?")->execute([$type, $row['id']]);
-            return 'updated';
+        $id = (int)$row['id'];
+        if ($manuel && !(int)$row['manuel']) {
+            $db->prepare("UPDATE numeros SET manuel = 1 WHERE id = ?")->execute([$id]);
         }
-        return 'exists';
+        if ($type !== 'inconnu' && $row['type'] !== $type) {
+            $db->prepare("UPDATE numeros SET type = ? WHERE id = ?")->execute([$type, $id]);
+            return ['id' => $id, 'etat' => 'updated'];
+        }
+        return ['id' => $id, 'etat' => 'exists'];
     }
-    $db->prepare("INSERT INTO numeros (numero, contact_id, type) VALUES (?,?,?)")
-       ->execute([$numNorm, $contactId, $type]);
-    return 'created';
+    $db->prepare("INSERT INTO numeros (numero, contact_id, type, manuel) VALUES (?,?,?,?)")
+       ->execute([$numNorm, $contactId, $type, (int)$manuel]);
+    return ['id' => (int)$db->lastInsertId(), 'etat' => 'created'];
+}
+
+/** Lie un numéro normalisé à un contact, saisi à la main. Retourne 'created' | 'updated' | 'exists'. */
+function lierNumero(PDO $db, int $contactId, string $numNorm, string $type): string {
+    return lierNumeroId($db, $contactId, $numNorm, $type)['etat'];
 }
 
 /**
